@@ -1,3 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+api/data/
+
 # Unity generated files
 StreetGolf/[Ll]ibrary/
 StreetGolf/[Tt]emp/
