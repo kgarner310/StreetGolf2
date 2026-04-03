@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime, timezone
-from sqlalchemy import DateTime, Enum, ForeignKey, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -12,6 +12,9 @@ class VoteEnum(str, enum.Enum):
 
 class HoleVote(Base):
     __tablename__ = "hole_votes"
+    __table_args__ = (
+        UniqueConstraint("user_id", "hole_id", name="uq_hole_votes_user_hole"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
