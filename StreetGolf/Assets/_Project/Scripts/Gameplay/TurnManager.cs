@@ -196,6 +196,15 @@ namespace StreetGolf.Gameplay
             SetState(GameState.Aiming);
         }
 
+        /// <summary>
+        /// Records a vote for the current hole and updates its lifecycle status.
+        /// Call from UI after the player rates the hole (delta = +1 upvote, -1 downvote).
+        /// </summary>
+        public void VoteOnCurrentHole(int delta)
+        {
+            HoleLifecycle.Vote(_holeData, delta);
+        }
+
         private void CompleteHole()
         {
             var gm = GameManager.Instance;

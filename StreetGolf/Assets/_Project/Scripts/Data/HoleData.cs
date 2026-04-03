@@ -17,6 +17,17 @@ namespace StreetGolf.Data
         public int Par;
 
         /// <summary>
+        /// Cumulative vote score. Positive = liked, negative = disliked.
+        /// Drives lifecycle status transitions.
+        /// </summary>
+        public int PersistenceScore;
+
+        /// <summary>
+        /// Current lifecycle state, updated by HoleLifecycle.UpdateHoleLifecycle after each vote.
+        /// </summary>
+        public HoleLifecycleStatus Status = HoleLifecycleStatus.Active;
+
+        /// <summary>
         /// Safe cell lookup — returns Road for out-of-bounds (treated as OOB by hazard handler).
         /// </summary>
         public TerrainType GetTerrain(int x, int y)
