@@ -33,6 +33,12 @@ namespace StreetGolf.Core
         /// <summary>Current hole seed.</summary>
         public uint CurrentSeed { get; private set; }
 
+        /// <summary>
+        /// Backend hole ID when playing the daily hole; 0 when playing a random or challenge hole.
+        /// Used by ResultUI to decide whether to show the vote panel.
+        /// </summary>
+        public int DailyHoleId { get; private set; }
+
         /// <summary>Ghost run data from a challenge (null if playing solo).</summary>
         public GhostRun CurrentGhostRun { get; private set; }
 
@@ -68,6 +74,22 @@ namespace StreetGolf.Core
         public void PlayNewHole()
         {
             CurrentSeed = (uint)Random.Range(1, int.MaxValue);
+            DailyHoleId = 0;
+            CurrentGhostRun = null;
+            CurrentChallenge = null;
+            LoadScene(GameSceneName);
+        }
+
+        /// <summary>
+        /// Play the daily hole fetched from the backend.
+        /// The seed is derived from the hole ID so generation is deterministic.
+        /// </summary>
+        public void PlayDailyHole(int holeId)
+        {
+            // Knuth multiplicative hash — spreads sequential IDs into varied seeds
+            CurrentSeed = (uint)holeId * 2654435761u;
+            if (CurrentSeed == 0) CurrentSeed = 1;
+            DailyHoleId = holeId;
             CurrentGhostRun = null;
             CurrentChallenge = null;
             LoadScene(GameSceneName);
@@ -79,6 +101,7 @@ namespace StreetGolf.Core
         public void PlaySeed(uint seed)
         {
             CurrentSeed = seed;
+            DailyHoleId = 0;
             CurrentGhostRun = null;
             CurrentChallenge = null;
             LoadScene(GameSceneName);
@@ -90,6 +113,7 @@ namespace StreetGolf.Core
         public void PlayChallenge(ChallengeData challenge)
         {
             CurrentSeed = challenge.Seed;
+            DailyHoleId = 0;
             CurrentChallenge = challenge;
             CurrentGhostRun = GhostRun.FromChallenge(challenge);
             LoadScene(GameSceneName);
