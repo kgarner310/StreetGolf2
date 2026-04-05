@@ -56,6 +56,16 @@ namespace StreetGolf.Editor
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             MakeEventSystem();
+
+            // Camera (required even for ScreenSpaceOverlay UI)
+            var camGO = new GameObject("Main Camera");
+            camGO.tag = "MainCamera";
+            var cam = camGO.AddComponent<Camera>();
+            cam.orthographic = true;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.05f, 0.15f, 0.05f);
+            camGO.transform.position = new Vector3(0, 0, -10);
+
             var canvas = MakeCanvas("Canvas", 1080, 1920);
 
             // Title text
@@ -196,6 +206,15 @@ namespace StreetGolf.Editor
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             MakeEventSystem();
+
+            var camGO = new GameObject("Main Camera");
+            camGO.tag = "MainCamera";
+            var cam = camGO.AddComponent<Camera>();
+            cam.orthographic = true;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.05f, 0.15f, 0.05f);
+            camGO.transform.position = new Vector3(0, 0, -10);
+
             var canvas = MakeCanvas("Canvas", 1080, 1920);
 
             // Score display
