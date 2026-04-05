@@ -101,8 +101,9 @@ namespace StreetGolf.Editor
             SetRef(seedUI, "_cancelButton", cancelBtn.GetComponent<Button>());
             SetRef(seedUI, "_errorText",    errorText.GetComponent<TMP_Text>());
 
-            EditorSceneManager.SaveScene(scene, $"{ScenesPath}/TitleScene.unity");
-            Debug.Log("[SceneBuilder] TitleScene saved.");
+            bool savedTitle = EditorSceneManager.SaveScene(scene, $"{ScenesPath}/TitleScene.unity");
+            if (!savedTitle) Debug.LogError("[SceneBuilder] FAILED to save TitleScene!");
+            else Debug.Log("[SceneBuilder] TitleScene saved.");
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -181,8 +182,9 @@ namespace StreetGolf.Editor
             SetRef(sceneCtrl, "_turnManager", turnManager);
             SetRef(sceneCtrl, "_hud",         hud);
 
-            EditorSceneManager.SaveScene(scene, $"{ScenesPath}/GameScene.unity");
-            Debug.Log("[SceneBuilder] GameScene saved.");
+            bool savedGame = EditorSceneManager.SaveScene(scene, $"{ScenesPath}/GameScene.unity");
+            if (!savedGame) Debug.LogError("[SceneBuilder] FAILED to save GameScene!");
+            else Debug.Log("[SceneBuilder] GameScene saved.");
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -240,8 +242,9 @@ namespace StreetGolf.Editor
             SetRef(resultUI, "_shareButton",         shareBtn.GetComponent<Button>());
             SetRef(resultUI, "_mainMenuButton",      mainMenuBtn.GetComponent<Button>());
 
-            EditorSceneManager.SaveScene(scene, $"{ScenesPath}/ResultScene.unity");
-            Debug.Log("[SceneBuilder] ResultScene saved.");
+            bool savedResult = EditorSceneManager.SaveScene(scene, $"{ScenesPath}/ResultScene.unity");
+            if (!savedResult) Debug.LogError("[SceneBuilder] FAILED to save ResultScene!");
+            else Debug.Log("[SceneBuilder] ResultScene saved.");
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -409,10 +412,18 @@ namespace StreetGolf.Editor
 
         private static void EnsureFolder(string path)
         {
-            if (AssetDatabase.IsValidFolder(path)) return;
-            string parent = Path.GetDirectoryName(path)!.Replace('\\', '/');
-            string folder = Path.GetFileName(path);
-            AssetDatabase.CreateFolder(parent, folder);
+            // Ensure the directory exists on disk first, then register with AssetDatabase
+            string fullPath = Path.GetFullPath(path);
+            if (!Directory.Exists(fullPath))
+                Directory.CreateDirectory(fullPath);
+
+            if (!AssetDatabase.IsValidFolder(path))
+            {
+                string parent = Path.GetDirectoryName(path)!.Replace('\\', '/');
+                string folder = Path.GetFileName(path);
+                AssetDatabase.CreateFolder(parent, folder);
+                AssetDatabase.Refresh();
+            }
         }
 
         private static T GetOrCreate<T>(string assetPath) where T : ScriptableObject
