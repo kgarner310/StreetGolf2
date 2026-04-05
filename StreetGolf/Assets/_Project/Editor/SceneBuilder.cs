@@ -69,7 +69,7 @@ namespace StreetGolf.Editor
             var holeStatusText = MakeText(dailyPanel.transform, "DailyHoleStatus", "Loading…",   26, new Vector2(0, -22), new Vector2(820, 36));
 
             // Buttons
-            var dailyBtn     = MakeButton(canvas.transform, "DailyHoleButton", "▶  Play Today's Hole", new Vector2(560, 110), new Vector2(0, 230));
+            var dailyBtn     = MakeButton(canvas.transform, "DailyHoleButton", "Play Today's Hole", new Vector2(560, 110), new Vector2(0, 230));
             var playBtn      = MakeButton(canvas.transform, "PlayButton",       "Play Random",          new Vector2(420,  90), new Vector2(0, 100));
             var challengeBtn = MakeButton(canvas.transform, "ChallengeButton",  "Challenge",            new Vector2(420,  90), new Vector2(0,  -10));
             dailyBtn.GetComponent<Button>().interactable = false;
@@ -212,8 +212,8 @@ namespace StreetGolf.Editor
             var votePanel      = MakePanel(canvas.transform, "VotePanel", new Vector2(760, 200), true);
             Anchored(votePanel, new Vector2(0, 30));
             MakeText(votePanel.transform, "VotePrompt", "How was this hole?", 30, new Vector2(0, 70), new Vector2(700, 44));
-            var thumbsUpBtn    = MakeButton(votePanel.transform, "ThumbsUpButton",   "👍  Good",     new Vector2(280, 80), new Vector2(-170, -20));
-            var thumbsDownBtn  = MakeButton(votePanel.transform, "ThumbsDownButton", "👎  Bad",      new Vector2(280, 80), new Vector2( 170, -20));
+            var thumbsUpBtn    = MakeButton(votePanel.transform, "ThumbsUpButton",   "Good Hole",  new Vector2(280, 80), new Vector2(-170, -20));
+            var thumbsDownBtn  = MakeButton(votePanel.transform, "ThumbsDownButton", "Bad Hole",   new Vector2(280, 80), new Vector2( 170, -20));
             var voteStatusText = MakeText  (votePanel.transform, "VoteStatusText",   "",              24, new Vector2(0, -90), new Vector2(700, 40));
 
             // Action buttons
@@ -349,7 +349,7 @@ namespace StreetGolf.Editor
             // Text viewport
             var viewport = new GameObject("Text Area");
             viewport.transform.SetParent(go.transform, false);
-            var vr = viewport.GetComponent<RectTransform>();
+            var vr = viewport.AddComponent<RectTransform>(); // explicit — Editor scripts don't auto-add
             vr.anchorMin = Vector2.zero; vr.anchorMax = Vector2.one;
             vr.offsetMin = new Vector2(10, 6); vr.offsetMax = new Vector2(-10, -6);
             viewport.AddComponent<RectMask2D>();
