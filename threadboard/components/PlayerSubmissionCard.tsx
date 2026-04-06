@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Score, Player, Submission } from '@/lib/types';
 import { scoreDisplay, scoreEmoji } from '@/lib/board';
+import ScoreHistoryDots from './ScoreHistoryDots';
 
 const SCORES: Score[] = ['2', '3', '4', '5', '6', 'X', 'DNP'];
 
@@ -31,6 +32,7 @@ interface PlayerSubmissionCardProps {
   submission: Submission | null;
   onSubmit: (score: Score) => void;
   boardComplete: boolean;
+  history?: Array<{ date: string; score: Score | null }>;
 }
 
 export default function PlayerSubmissionCard({
@@ -38,6 +40,7 @@ export default function PlayerSubmissionCard({
   submission,
   onSubmit,
   boardComplete,
+  history,
 }: PlayerSubmissionCardProps) {
   const [editing, setEditing] = useState(false);
 
@@ -45,6 +48,15 @@ export default function PlayerSubmissionCard({
     onSubmit(score);
     setEditing(false);
   };
+
+  // Streak flame intensity
+  const streakDisplay = player.streak >= 7
+    ? `🔥🔥 ${player.streak}`
+    : player.streak >= 3
+    ? `🔥 ${player.streak}`
+    : player.streak > 0
+    ? `${player.streak}`
+    : null;
 
   return (
     <div className={`rounded-2xl border p-4 transition-all duration-300 ${
@@ -55,25 +67,29 @@ export default function PlayerSubmissionCard({
       <div className="flex items-center gap-3 mb-3">
         <span className="text-3xl">{player.avatarEmoji}</span>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-white text-lg leading-tight">{player.name}</span>
-            {player.streak > 0 && (
-              <span className="text-xs bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full font-medium">
-                🔥 {player.streak}
+            {streakDisplay && (
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                player.streak >= 7
+                  ? 'bg-red-500/20 text-red-400'
+                  : 'bg-orange-500/20 text-orange-400'
+              }`}>
+                {streakDisplay}
               </span>
             )}
           </div>
           <div className="text-xs text-zinc-500 truncate">{player.archetype}</div>
+          {history && <ScoreHistoryDots history={history} />}
         </div>
         {submission && (
-          <div className={`text-2xl font-black tabular-nums`}>
+          <div className="text-2xl font-black tabular-nums">
             {scoreEmoji(submission.score)}
           </div>
         )}
       </div>
 
       {submission && !editing ? (
-        // Submitted state
         <div className={`rounded-xl border px-4 py-3 flex items-center justify-between ${SUBMITTED_COLORS[submission.score]}`}>
           <div>
             <div className="text-xl font-black tabular-nums">
@@ -91,14 +107,12 @@ export default function PlayerSubmissionCard({
             <button
               onClick={() => setEditing(true)}
               className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors underline"
-              aria-label="Change score"
             >
               change
             </button>
           )}
         </div>
       ) : (
-        // Not yet submitted (or editing) — show score buttons
         <div>
           <div className="flex items-center justify-between mb-2">
             <div className="text-xs text-zinc-500 font-medium uppercase tracking-wide">

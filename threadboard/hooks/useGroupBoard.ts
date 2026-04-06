@@ -8,8 +8,10 @@ function getTodayDate(): string {
 }
 
 interface GroupBoardState {
+  allSubmissions: Submission[];
   submitScore: (playerId: string, score: Score) => void;
   getTodaySubmissions: () => Submission[];
+  getPlayerHistory: (playerId: string, days: number) => Array<{ date: string; score: Score | null }>;
   resetBoard: () => void;
   hydrated: boolean;
 }
@@ -47,10 +49,25 @@ export function useGroupBoard(group: Group): GroupBoardState {
     return submissions.filter(s => s.date === today);
   }, [submissions]);
 
+  const getPlayerHistory = useCallback(
+    (playerId: string, days: number): Array<{ date: string; score: Score | null }> => {
+      const result = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const date = d.toISOString().split('T')[0];
+        const sub = submissions.find(s => s.playerId === playerId && s.date === date);
+        result.push({ date, score: sub?.score ?? null });
+      }
+      return result;
+    },
+    [submissions]
+  );
+
   const resetBoard = useCallback(() => {
     setSubmissions([]);
     try { localStorage.removeItem(key); } catch { /* ignore */ }
   }, [key]);
 
-  return { submitScore, getTodaySubmissions, resetBoard, hydrated };
+  return { allSubmissions: submissions, submitScore, getTodaySubmissions, getPlayerHistory, resetBoard, hydrated };
 }

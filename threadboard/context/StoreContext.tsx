@@ -23,6 +23,7 @@ interface StoreContextValue {
   submitScore: (playerId: string, score: Score) => void;
   resetDemo: () => void;
   getTodaySubmissions: () => Submission[];
+  getPlayerHistory: (playerId: string, days: number) => Array<{ date: string; score: Score | null }>;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -102,8 +103,23 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return state.submissions.filter(s => s.date === today);
   }, [state.submissions]);
 
+  const getPlayerHistory = useCallback(
+    (playerId: string, days: number): Array<{ date: string; score: Score | null }> => {
+      const result = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const date = d.toISOString().split('T')[0];
+        const sub = state.submissions.find(s => s.playerId === playerId && s.date === date);
+        result.push({ date, score: sub?.score ?? null });
+      }
+      return result;
+    },
+    [state.submissions]
+  );
+
   return (
-    <StoreContext.Provider value={{ state, hydrated, submitScore, resetDemo, getTodaySubmissions }}>
+    <StoreContext.Provider value={{ state, hydrated, submitScore, resetDemo, getTodaySubmissions, getPlayerHistory }}>
       {children}
     </StoreContext.Provider>
   );

@@ -1,5 +1,6 @@
 import { Board, Group, Submission, Score, Title } from './types';
 import { generateTitles } from './titles';
+import { generateCommentary } from './commentary';
 
 export function numericScore(score: Score): number | null {
   if (score === 'X' || score === 'DNP') return null;
@@ -24,15 +25,26 @@ export function scoreEmoji(score: Score): string {
   }
 }
 
+// Emoji squares for share text — like Wordle grid style
+export function scoreSquare(score: Score): string {
+  switch (score) {
+    case '2': return '🟩';
+    case '3': return '🟩';
+    case '4': return '🟨';
+    case '5': return '🟧';
+    case '6': return '🟥';
+    case 'X': return '⬛';
+    case 'DNP': return '⬜';
+  }
+}
+
 export function sortSubmissions(submissions: Submission[]): Submission[] {
   return [...submissions].sort((a, b) => {
     const na = numericScore(a.score);
     const nb = numericScore(b.score);
-    // Numeric scores first (ascending = best)
     if (na !== null && nb !== null) return na - nb;
     if (na !== null) return -1;
     if (nb !== null) return 1;
-    // X before DNP
     if (a.score === 'X' && b.score === 'DNP') return -1;
     if (a.score === 'DNP' && b.score === 'X') return 1;
     return 0;
@@ -54,26 +66,27 @@ export function groupAverage(submissions: Submission[]): number | null {
 export function generateBoard(group: Group, submissions: Submission[], date: string): Board {
   const { players } = group;
   const allSubmitted = players.every(p => submissions.some(s => s.playerId === p.id));
-  const completed = allSubmitted;
 
   const titles = generateTitles(submissions, players);
   const sorted = sortSubmissions(submissions);
   const avg = groupAverage(submissions);
+  const commentary = generateCommentary(submissions, players, date);
 
-  // Format date for display e.g. "April 6, 2026"
   const displayDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
   });
 
-  // Plain-text shareable recap
+  // Plain-text shareable recap — punchy, emoji-rich, Reddit-friendly
   const lines: string[] = [
-    `🧠 THREADBOARD — ${displayDate}`,
+    `🧠 THREADBOARD — ${group.name}`,
+    displayDate,
     '',
     ...sorted.map(s => {
       const player = players.find(p => p.id === s.playerId)!;
-      return `${player.name} — ${scoreDisplay(s.score)} ${scoreEmoji(s.score)}`;
+      const streakStr = player.streak >= 3 ? ` 🔥${player.streak}` : '';
+      return `${scoreSquare(s.score)} ${player.name} — ${scoreDisplay(s.score)}${streakStr}`;
     }),
     '',
     ...titles.map(t => {
@@ -86,15 +99,16 @@ export function generateBoard(group: Group, submissions: Submission[], date: str
     lines.push(`📊 Group Avg: ${avg.toFixed(2)}`);
   }
 
-  lines.push('', '— threadboard.app');
+  lines.push('', `"${commentary}"`);
+  lines.push('', 'threadboard.vercel.app');
 
-  const generatedText = lines.filter(l => l !== undefined).join('\n');
+  const generatedText = lines.join('\n');
 
   return {
     date,
     groupId: group.id,
     submissions,
-    completed,
+    completed: allSubmitted,
     generatedText,
     generatedTitles: titles,
   };

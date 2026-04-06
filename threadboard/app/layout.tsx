@@ -3,8 +3,20 @@ import './globals.css';
 import { StoreProvider } from '@/context/StoreContext';
 
 export const metadata: Metadata = {
-  title: 'Threadboard',
-  description: 'Your group chat already has the game. We make the show.',
+  title: 'Threadboard — Daily Wordle Board',
+  description: 'Your group chat already has the game. We make the show. Tap your score, see the rankings, share the Board.',
+  openGraph: {
+    title: 'Threadboard — Daily Wordle Board',
+    description: 'Tap your Wordle score. See the rankings. Share the Board with your group.',
+    type: 'website',
+    url: 'https://threadboard.vercel.app',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Threadboard',
+    description: 'Small ESPN for your Wordle group. Tap score → see board → share.',
+  },
+  keywords: ['wordle', 'wordle score', 'wordle tracker', 'wordle group', 'daily puzzle'],
 };
 
 export const viewport: Viewport = {

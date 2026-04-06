@@ -38,7 +38,7 @@ export default function GroupBoardPage() {
 }
 
 function GroupBoard({ group }: { group: Group }) {
-  const { submitScore, getTodaySubmissions, resetBoard, hydrated } = useGroupBoard(group);
+  const { submitScore, getTodaySubmissions, getPlayerHistory, resetBoard, hydrated } = useGroupBoard(group);
   const [linkCopied, setLinkCopied] = useState(false);
 
   const todaySubmissions = getTodaySubmissions();
@@ -124,6 +124,7 @@ function GroupBoard({ group }: { group: Group }) {
         <div className="space-y-3">
           {group.players.map(player => {
             const submission = todaySubmissions.find(s => s.playerId === player.id) ?? null;
+            const history = getPlayerHistory(player.id, 7);
             return (
               <PlayerSubmissionCard
                 key={player.id}
@@ -131,6 +132,7 @@ function GroupBoard({ group }: { group: Group }) {
                 submission={submission}
                 onSubmit={(score: Score) => submitScore(player.id, score)}
                 boardComplete={allSubmitted}
+                history={history}
               />
             );
           })}
