@@ -7,14 +7,14 @@ export const DEMO_GROUP: Group = {
   players: [
     {
       id: 'dad',
-      name: 'Dad',
+      name: 'Jim',
       archetype: 'Steady Hand',
       avatarEmoji: '👨',
       streak: 5,
     },
     {
       id: 'mom',
-      name: 'Mom',
+      name: 'Brenda',
       archetype: 'Quiet Assassin',
       avatarEmoji: '👩',
       streak: 7,

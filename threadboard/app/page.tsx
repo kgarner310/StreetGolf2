@@ -67,8 +67,8 @@ export default function LandingPage() {
             <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-3">Demo Group: The Family</div>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { emoji: '👨', name: 'Dad', archetype: 'Steady Hand' },
-                { emoji: '👩', name: 'Mom', archetype: 'Quiet Assassin' },
+                { emoji: '👨', name: 'Jim', archetype: 'Steady Hand' },
+                { emoji: '👩', name: 'Brenda', archetype: 'Quiet Assassin' },
                 { emoji: '🧒', name: 'Ted', archetype: 'Edge Walker' },
                 { emoji: '👧', name: 'Nancy', archetype: 'Cold-Blooded' },
               ].map(p => (
