@@ -1,22 +1,34 @@
-/**
- * Sends a photo to Replicate's img2img API and returns the URL of the
- * AI-generated semi-realistic golf hole image.
- *
- * Requires VITE_REPLICATE_API_TOKEN in .env
- *
- * Model: black-forest-labs/flux-fill-pro (img2img inpainting)
- * Fallback: stability-ai/stable-diffusion-img2img
- */
-
 const REPLICATE_TOKEN = import.meta.env.VITE_REPLICATE_API_TOKEN
 
-// Use model-based endpoint (no version hash needed, always latest)
 const MODEL_ENDPOINT = 'https://api.replicate.com/v1/models/stability-ai/stable-diffusion-img2img/predictions'
+
+// Replicate has ~4MB request limit. iPhone photos are 3-5MB raw.
+// Resize to 768px max dimension before encoding — keeps quality, stays small.
+function resizeImage(dataUrl, maxDim = 768) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      resolve(canvas.toDataURL('image/jpeg', 0.88))
+    }
+    img.src = dataUrl
+  })
+}
 
 export async function generateHole(photoDataUrl, pin) {
   if (!REPLICATE_TOKEN) {
     throw new Error('Missing VITE_REPLICATE_API_TOKEN in .env')
   }
+
+  // Resize before sending — prevents "Load failed" on large iPhone photos
+  const resized = await resizeImage(photoDataUrl, 768)
+  const base64 = resized.replace(/^data:image\/[a-z]+;base64,/, '')
 
   const pinPct = pin
     ? `The flag/pin is located at roughly ${Math.round(pin.x * 100)}% from the left and ${Math.round(pin.y * 100)}% from the top of the image.`
@@ -32,27 +44,28 @@ export async function generateHole(photoDataUrl, pin) {
     'No text, no UI, no watermarks.',
   ].filter(Boolean).join(' ')
 
-  // Convert dataUrl to base64 string
-  const base64 = photoDataUrl.replace(/^data:image\/[a-z]+;base64,/, '')
-
-  // Create prediction via model endpoint (no version hash required)
-  const createRes = await fetch(MODEL_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      Authorization: `Token ${REPLICATE_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      input: {
-        prompt,
-        image: `data:image/jpeg;base64,${base64}`,
-        prompt_strength: 0.6,
-        num_inference_steps: 30,
-        guidance_scale: 7.5,
-        negative_prompt: 'blurry, cartoon, flat, 2d, painting, ugly, text, watermark',
+  let createRes
+  try {
+    createRes = await fetch(MODEL_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        Authorization: `Token ${REPLICATE_TOKEN}`,
+        'Content-Type': 'application/json',
       },
-    }),
-  })
+      body: JSON.stringify({
+        input: {
+          prompt,
+          image: `data:image/jpeg;base64,${base64}`,
+          prompt_strength: 0.6,
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+          negative_prompt: 'blurry, cartoon, flat, 2d, painting, ugly, text, watermark',
+        },
+      }),
+    })
+  } catch (networkErr) {
+    throw new Error(`Network error calling Replicate: ${networkErr.message}. Check your API token and internet connection.`)
+  }
 
   if (!createRes.ok) {
     const err = await createRes.json().catch(() => ({}))
