@@ -129,8 +129,4 @@ const styles = {
   hint: { fontSize: '13px', color: '#ccc', textAlign: 'center', maxWidth: '300px', lineHeight: 1.6 },
 }
 
-// Inject keyframes
-const sheet = document.styleSheets[0]
-try {
-  sheet.insertRule('@keyframes spin { to { transform: rotate(360deg) } }', sheet.cssRules.length)
-} catch {}
+// @keyframes spin is defined in index.css

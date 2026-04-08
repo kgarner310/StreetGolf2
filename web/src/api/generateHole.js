@@ -10,8 +10,8 @@
 
 const REPLICATE_TOKEN = import.meta.env.VITE_REPLICATE_API_TOKEN
 
-// Stable Diffusion img2img — reliable, widely available
-const MODEL_VERSION = 'stability-ai/stable-diffusion-img2img:15a3689ee13b0d2616e98820eca31d4af4b51344a2eb5040d32faaf073cc07c7c'
+// Use model-based endpoint (no version hash needed, always latest)
+const MODEL_ENDPOINT = 'https://api.replicate.com/v1/models/stability-ai/stable-diffusion-img2img/predictions'
 
 export async function generateHole(photoDataUrl, pin) {
   if (!REPLICATE_TOKEN) {
@@ -32,22 +32,21 @@ export async function generateHole(photoDataUrl, pin) {
     'No text, no UI, no watermarks.',
   ].filter(Boolean).join(' ')
 
-  // Convert dataUrl to base64 string (Replicate wants raw base64 or URL)
+  // Convert dataUrl to base64 string
   const base64 = photoDataUrl.replace(/^data:image\/[a-z]+;base64,/, '')
 
-  // Create prediction
-  const createRes = await fetch('https://api.replicate.com/v1/predictions', {
+  // Create prediction via model endpoint (no version hash required)
+  const createRes = await fetch(MODEL_ENDPOINT, {
     method: 'POST',
     headers: {
       Authorization: `Token ${REPLICATE_TOKEN}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      version: MODEL_VERSION,
       input: {
         prompt,
         image: `data:image/jpeg;base64,${base64}`,
-        prompt_strength: 0.6,  // Keep scene structure, add golf
+        prompt_strength: 0.6,
         num_inference_steps: 30,
         guidance_scale: 7.5,
         negative_prompt: 'blurry, cartoon, flat, 2d, painting, ugly, text, watermark',
