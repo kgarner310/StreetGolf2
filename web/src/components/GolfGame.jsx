@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 
 const PHASE = { AIM: 'aim', POWER: 'power', SHOT: 'shot', RESULT: 'result' }
 const AIM_SPEED = 1.4
@@ -22,7 +22,8 @@ export default function GolfGame({ holeImageUrl, pin, onFeed, onNewHole }) {
   const [result, setResult] = useState(null)
   const [shotCount, setShotCount] = useState(0)
 
-  const pinPos = pin || { x: 0.5, y: 0.2 }
+  // useMemo so the object reference is stable — prevents RAF loop restarting on every state update
+  const pinPos = useMemo(() => pin || { x: 0.5, y: 0.2 }, [pin])
 
   const loop = useCallback((ts) => {
     const canvas = canvasRef.current
@@ -160,16 +161,17 @@ export default function GolfGame({ holeImageUrl, pin, onFeed, onNewHole }) {
     if (!canvas) return
 
     function resize() {
-      canvas.width = canvas.offsetWidth * devicePixelRatio
-      canvas.height = canvas.offsetHeight * devicePixelRatio
-      canvas.style.width = canvas.offsetWidth + 'px'
-      canvas.style.height = canvas.offsetHeight + 'px'
+      // Read CSS dimensions first before mutating canvas.width/height
+      const w = canvas.offsetWidth
+      const h = canvas.offsetHeight
+      canvas.width = w * devicePixelRatio
+      canvas.height = h * devicePixelRatio
     }
     resize()
     window.addEventListener('resize', resize)
 
     const img = new Image()
-    img.crossOrigin = 'anonymous'
+    // No crossOrigin — Replicate CDN doesn't need it for display-only use
     img.src = holeImageUrl
     holeImgRef.current = img
 
@@ -261,16 +263,19 @@ function Hint({ children }) {
 }
 
 function drawPowerBar(ctx, W, H, power) {
+  // All constants are in CSS pixels; multiply by dpr since canvas is in physical pixels
+  const dpr = devicePixelRatio
   const barW = W * 0.52
-  const barH = 22
+  const barH = 22 * dpr
+  const pad = 14 * dpr
   const x = (W - barW) / 2
-  const y = H - 110
+  const y = H - 110 * dpr
 
   ctx.save()
   // Backdrop
   ctx.fillStyle = 'rgba(0,0,0,0.6)'
   ctx.beginPath()
-  rrect(ctx, x - 14, y - 14, barW + 28, barH + 36, 16)
+  rrect(ctx, x - pad, y - pad, barW + pad * 2, barH + pad * 2.5, 16 * dpr)
   ctx.fill()
   // Track
   ctx.fillStyle = 'rgba(255,255,255,0.12)'
@@ -286,10 +291,10 @@ function drawPowerBar(ctx, W, H, power) {
   ctx.fill()
   // Label
   ctx.fillStyle = 'rgba(255,255,255,0.8)'
-  ctx.font = `bold ${14 * (W / 400)}px -apple-system, sans-serif`
+  ctx.font = `bold ${14 * dpr}px -apple-system, sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
-  ctx.fillText('POWER', W / 2, y + barH + 8)
+  ctx.fillText('POWER', W / 2, y + barH + 8 * dpr)
   ctx.restore()
 }
 
