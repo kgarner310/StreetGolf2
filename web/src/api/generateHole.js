@@ -1,20 +1,17 @@
-const REPLICATE_TOKEN = import.meta.env.VITE_REPLICATE_API_TOKEN
+// Routes through /.netlify/functions/replicate-proxy to avoid CORS
+// and keep the API token server-side (not in the JS bundle).
+const PROXY = '/.netlify/functions/replicate-proxy'
+const POLL  = '/.netlify/functions/replicate-poll'
 
-const MODEL_ENDPOINT = 'https://api.replicate.com/v1/models/stability-ai/stable-diffusion-img2img/predictions'
-
-// Replicate has ~4MB request limit. iPhone photos are 3-5MB raw.
-// Resize to 768px max dimension before encoding — keeps quality, stays small.
 function resizeImage(dataUrl, maxDim = 768) {
   return new Promise((resolve) => {
     const img = new Image()
     img.onload = () => {
       const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
-      const w = Math.round(img.width * scale)
-      const h = Math.round(img.height * scale)
       const canvas = document.createElement('canvas')
-      canvas.width = w
-      canvas.height = h
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      canvas.width  = Math.round(img.width  * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
       resolve(canvas.toDataURL('image/jpeg', 0.88))
     }
     img.src = dataUrl
@@ -22,36 +19,27 @@ function resizeImage(dataUrl, maxDim = 768) {
 }
 
 export async function generateHole(photoDataUrl, pin) {
-  if (!REPLICATE_TOKEN) {
-    throw new Error('Missing VITE_REPLICATE_API_TOKEN in .env')
-  }
-
-  // Resize before sending — prevents "Load failed" on large iPhone photos
   const resized = await resizeImage(photoDataUrl, 768)
-  const base64 = resized.replace(/^data:image\/[a-z]+;base64,/, '')
+  const base64  = resized.replace(/^data:image\/[a-z]+;base64,/, '')
 
   const pinPct = pin
-    ? `The flag/pin is located at roughly ${Math.round(pin.x * 100)}% from the left and ${Math.round(pin.y * 100)}% from the top of the image.`
+    ? `Flag/pin at roughly ${Math.round(pin.x * 100)}% from left, ${Math.round(pin.y * 100)}% from top.`
     : ''
 
   const prompt = [
     'Semi-realistic golf hole, photorealistic golf video game screenshot.',
     'Lush green fairway, manicured rough, sand bunkers, realistic grass textures.',
-    'A single white golf flag stick with a red flag marks the hole.',
+    'White golf flag stick with red flag marks the hole.',
     pinPct,
-    'The scene layout, proportions, and background elements closely match the original photograph.',
-    'Bright natural lighting, high detail, Golf Clash meets real life.',
-    'No text, no UI, no watermarks.',
+    'Scene layout and proportions match the original photograph.',
+    'Bright natural lighting, high detail. No text, no UI, no watermarks.',
   ].filter(Boolean).join(' ')
 
-  let createRes
+  let res
   try {
-    createRes = await fetch(MODEL_ENDPOINT, {
+    res = await fetch(PROXY, {
       method: 'POST',
-      headers: {
-        Authorization: `Token ${REPLICATE_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         input: {
           prompt,
@@ -63,25 +51,23 @@ export async function generateHole(photoDataUrl, pin) {
         },
       }),
     })
-  } catch (networkErr) {
-    throw new Error(`Network error calling Replicate: ${networkErr.message}. Check your API token and internet connection.`)
+  } catch (err) {
+    throw new Error(`Proxy unreachable: ${err.message}. Is the Netlify function deployed?`)
   }
 
-  if (!createRes.ok) {
-    const err = await createRes.json().catch(() => ({}))
-    throw new Error(err.detail || `Replicate API error ${createRes.status}`)
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || err.detail || `Proxy error ${res.status}`)
   }
 
-  const prediction = await createRes.json()
+  const prediction = await res.json()
   return pollPrediction(prediction.id)
 }
 
 async function pollPrediction(id, maxAttempts = 60) {
   for (let i = 0; i < maxAttempts; i++) {
     await delay(2000)
-    const res = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
-      headers: { Authorization: `Token ${REPLICATE_TOKEN}` },
-    })
+    const res  = await fetch(`${POLL}?id=${id}`)
     const data = await res.json()
 
     if (data.status === 'succeeded') {
