@@ -27,12 +27,15 @@ const SUBMITTED_COLORS: Record<Score, string> = {
   'DNP': 'border-zinc-700 bg-zinc-900/50 text-zinc-500',
 };
 
+const ORDER_LABELS: Record<number, string> = { 1: '1st in ⚡', 2: '2nd in', 3: '3rd in', 4: '4th in' };
+
 interface PlayerSubmissionCardProps {
   player: Player;
   submission: Submission | null;
   onSubmit: (score: Score) => void;
   boardComplete: boolean;
   history?: Array<{ date: string; score: Score | null }>;
+  submissionOrder?: number; // 1 = submitted first today
 }
 
 export default function PlayerSubmissionCard({
@@ -41,6 +44,7 @@ export default function PlayerSubmissionCard({
   onSubmit,
   boardComplete,
   history,
+  submissionOrder,
 }: PlayerSubmissionCardProps) {
   const [editing, setEditing] = useState(false);
 
@@ -95,12 +99,19 @@ export default function PlayerSubmissionCard({
             <div className="text-xl font-black tabular-nums">
               {scoreDisplay(submission.score)}
             </div>
-            <div className="text-xs opacity-60 mt-0.5">
-              {submission.score === 'DNP'
-                ? 'Ghost — not playing today'
-                : submission.score === 'X'
-                ? 'Under review 👀'
-                : 'Submitted ✓'}
+            <div className="text-xs opacity-60 mt-0.5 flex items-center gap-1.5">
+              <span>
+                {submission.score === 'DNP'
+                  ? 'Ghost — not playing today'
+                  : submission.score === 'X'
+                  ? 'Under review 👀'
+                  : 'Submitted ✓'}
+              </span>
+              {submissionOrder && submission.score !== 'DNP' && (
+                <span className={`font-semibold ${submissionOrder === 1 ? 'text-yellow-400 opacity-100' : ''}`}>
+                  · {ORDER_LABELS[submissionOrder] ?? `${submissionOrder}th in`}
+                </span>
+              )}
             </div>
           </div>
           {!boardComplete && (

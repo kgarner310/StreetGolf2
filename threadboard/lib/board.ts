@@ -38,16 +38,34 @@ export function scoreSquare(score: Score): string {
   }
 }
 
+function submittedAt(s: Submission): number {
+  return s.submittedAt ? new Date(s.submittedAt).getTime() : 0;
+}
+
+/** Returns a map of playerId → submission position (1 = first to submit). */
+export function getSubmissionOrder(submissions: Submission[]): Map<string, number> {
+  const order = new Map<string, number>();
+  [...submissions]
+    .sort((a, b) => submittedAt(a) - submittedAt(b))
+    .forEach((s, i) => order.set(s.playerId, i + 1));
+  return order;
+}
+
 export function sortSubmissions(submissions: Submission[]): Submission[] {
   return [...submissions].sort((a, b) => {
     const na = numericScore(a.score);
     const nb = numericScore(b.score);
-    if (na !== null && nb !== null) return na - nb;
+    if (na !== null && nb !== null) {
+      if (na !== nb) return na - nb;
+      // Tiebreaker: earliest submission wins
+      return submittedAt(a) - submittedAt(b);
+    }
     if (na !== null) return -1;
     if (nb !== null) return 1;
     if (a.score === 'X' && b.score === 'DNP') return -1;
     if (a.score === 'DNP' && b.score === 'X') return 1;
-    return 0;
+    // X vs X or DNP vs DNP — tiebreak by time
+    return submittedAt(a) - submittedAt(b);
   });
 }
 

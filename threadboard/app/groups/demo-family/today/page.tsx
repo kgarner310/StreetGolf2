@@ -9,7 +9,7 @@ import BoardCard from '@/components/BoardCard';
 import ResetButton from '@/components/ResetButton';
 import { useStore } from '@/context/StoreContext';
 import { Score } from '@/lib/types';
-import { generateBoard } from '@/lib/board';
+import { generateBoard, getSubmissionOrder } from '@/lib/board';
 
 export default function TodayPage() {
   const { state, submitScore, getTodaySubmissions, getPlayerHistory, hydrated } = useStore();
@@ -30,6 +30,8 @@ export default function TodayPage() {
     if (todaySubmissions.length === 0) return null;
     return generateBoard(group, todaySubmissions, today);
   }, [group, todaySubmissions, today]);
+
+  const submissionOrder = useMemo(() => getSubmissionOrder(todaySubmissions), [todaySubmissions]);
 
   const displayDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
@@ -70,6 +72,7 @@ export default function TodayPage() {
                 onSubmit={(score: Score) => submitScore(player.id, score)}
                 boardComplete={allSubmitted}
                 history={history}
+                submissionOrder={submissionOrder.get(player.id)}
               />
             );
           })}

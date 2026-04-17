@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { decodeGroup } from '@/lib/groupConfig';
 import { useGroupBoard } from '@/hooks/useGroupBoard';
-import { generateBoard } from '@/lib/board';
+import { generateBoard, getSubmissionOrder } from '@/lib/board';
 import { Group, Score } from '@/lib/types';
 import Header from '@/components/Header';
 import PlayerSubmissionCard from '@/components/PlayerSubmissionCard';
@@ -55,6 +55,8 @@ function GroupBoard({ group }: { group: Group }) {
     if (todaySubmissions.length === 0) return null;
     return generateBoard(group, todaySubmissions, today);
   }, [group, todaySubmissions, today]);
+
+  const submissionOrder = useMemo(() => getSubmissionOrder(todaySubmissions), [todaySubmissions]);
 
   const handleCopyLink = async () => {
     try {
@@ -133,6 +135,7 @@ function GroupBoard({ group }: { group: Group }) {
                 onSubmit={(score: Score) => submitScore(player.id, score)}
                 boardComplete={allSubmitted}
                 history={history}
+                submissionOrder={submissionOrder.get(player.id)}
               />
             );
           })}

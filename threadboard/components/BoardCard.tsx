@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Board, Group } from '@/lib/types';
-import { scoreDisplay, scoreEmoji, sortSubmissions, groupAverage } from '@/lib/board';
+import { scoreDisplay, scoreEmoji, sortSubmissions, groupAverage, getSubmissionOrder, numericScore } from '@/lib/board';
 import { generateCommentary } from '@/lib/commentary';
 import TitlesList from './TitlesList';
 import CopyBoardButton from './CopyBoardButton';
@@ -25,6 +25,7 @@ export default function BoardCard({ board, group }: BoardCardProps) {
 
   const sorted = sortSubmissions(board.submissions);
   const avg = groupAverage(board.submissions);
+  const submissionOrder = getSubmissionOrder(board.submissions);
   const winner = sorted[0];
   const winnerPlayer = winner ? group.players.find(p => p.id === winner.playerId) : null;
   const commentary = generateCommentary(board.submissions, group.players, board.date);
@@ -69,6 +70,11 @@ export default function BoardCard({ board, group }: BoardCardProps) {
             const player = group.players.find(p => p.id === sub.playerId)!;
             const isWinner = i === 0;
             const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+            // Tiebreaker: same score as the next player means time decided it
+            const nextSub = sorted[i + 1];
+            const isTiebroken = nextSub &&
+              numericScore(sub.score) !== null &&
+              numericScore(sub.score) === numericScore(nextSub.score);
             return (
               <div
                 key={sub.playerId}
@@ -84,6 +90,9 @@ export default function BoardCard({ board, group }: BoardCardProps) {
                   <div className="font-black text-lg tabular-nums text-white">
                     {scoreDisplay(sub.score)} {scoreEmoji(sub.score)}
                   </div>
+                  {isTiebroken && (
+                    <div className="text-xs text-yellow-400 font-semibold">⚡ fastest fingers</div>
+                  )}
                   {player.streak >= 3 && (
                     <div className="text-xs text-orange-400">
                       {player.streak >= 7 ? '🔥🔥' : '🔥'} {player.streak} day streak
