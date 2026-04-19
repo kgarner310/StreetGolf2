@@ -1,36 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Submission } from '@/lib/types';
 
-// --- Storage abstraction ---
-// Uses Vercel KV in production (when KV_REST_API_URL is set).
-// Falls back to in-memory Map for local dev — no setup needed.
-// Upgrade: create a KV store in Vercel dashboard → Storage, link it to
-// this project, then `vercel env pull` to get the env vars locally.
-
 const memStore = new Map<string, Submission[]>();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _redis: any = null;
+async function redis() {
+  if (!process.env.REDIS_URL) return null;
+  if (!_redis) {
+    const { default: Redis } = await import('ioredis');
+    _redis = new Redis(process.env.REDIS_URL);
+  }
+  return _redis;
+}
+
 async function getStore(key: string): Promise<Submission[]> {
-  if (process.env.KV_REST_API_URL) {
-    const { kv } = await import('@vercel/kv');
-    return (await kv.get<Submission[]>(key)) ?? [];
+  const r = await redis();
+  if (r) {
+    const val = await r.get(key);
+    return val ? JSON.parse(val) : [];
   }
   return memStore.get(key) ?? [];
 }
 
 async function setStore(key: string, subs: Submission[]): Promise<void> {
-  if (process.env.KV_REST_API_URL) {
-    const { kv } = await import('@vercel/kv');
-    // 7-day TTL — old boards auto-expire
-    await kv.set(key, subs, { ex: 7 * 24 * 60 * 60 });
+  const r = await redis();
+  if (r) {
+    await r.set(key, JSON.stringify(subs), 'EX', 7 * 24 * 60 * 60);
     return;
   }
   memStore.set(key, subs);
 }
 
 async function delStore(key: string): Promise<void> {
-  if (process.env.KV_REST_API_URL) {
-    const { kv } = await import('@vercel/kv');
-    await kv.del(key);
+  const r = await redis();
+  if (r) {
+    await r.del(key);
     return;
   }
   memStore.delete(key);
@@ -39,8 +44,6 @@ async function delStore(key: string): Promise<void> {
 function storeKey(groupId: string, date: string) {
   return `subs:${groupId}:${date}`;
 }
-
-// --- Route handlers ---
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
