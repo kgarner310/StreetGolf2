@@ -5,7 +5,8 @@ import { Group, Submission, Score } from '@/lib/types';
 import { fetchSubmissions, pushSubmission, clearSubmissions } from '@/lib/submissionsApi';
 
 function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function localHistoryKey(groupId: string) {
@@ -81,7 +82,7 @@ export function useGroupBoard(group: Group): GroupBoardState {
       for (let i = days - 1; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        const date = d.toISOString().split('T')[0];
+        const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const sub = i === 0
           ? todaySubs.find(s => s.playerId === playerId)
           : historySubs.find(s => s.playerId === playerId && s.date === date);

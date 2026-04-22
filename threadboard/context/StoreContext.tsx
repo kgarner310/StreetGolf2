@@ -9,7 +9,8 @@ const STORAGE_KEY = 'threadboard_v1';
 const DEMO_GROUP_ID = DEMO_GROUP.id;
 
 export function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function getInitialState(): AppState {
@@ -106,7 +107,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       for (let i = days - 1; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        const date = d.toISOString().split('T')[0];
+        const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const sub = i === 0
           ? todaySubs.find(s => s.playerId === playerId)
           : state.submissions.find(s => s.playerId === playerId && s.date === date);

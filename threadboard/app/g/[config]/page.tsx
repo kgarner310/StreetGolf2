@@ -42,7 +42,7 @@ function GroupBoard({ group }: { group: Group }) {
   const [linkCopied, setLinkCopied] = useState(false);
 
   const todaySubmissions = getTodaySubmissions();
-  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const today = useMemo(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }, []);
 
   const allSubmitted = group.players.every(p =>
     todaySubmissions.some(s => s.playerId === p.id)

@@ -16,7 +16,7 @@ export default function TodayPage() {
   const todaySubmissions = getTodaySubmissions();
   const { group } = state;
 
-  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const today = useMemo(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }, []);
 
   const allSubmitted = group.players.every(p =>
     todaySubmissions.some(s => s.playerId === p.id)
