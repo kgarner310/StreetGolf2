@@ -3,13 +3,15 @@ import { Submission } from '@/lib/types';
 
 const memStore = new Map<string, Submission[]>();
 
+const REDIS_URL = process.env.REDIS_URL || process.env.STORAGE_URL;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _redis: any = null;
 async function redis() {
-  if (!process.env.REDIS_URL) return null;
+  if (!REDIS_URL) return null;
   if (!_redis) {
     const { default: Redis } = await import('ioredis');
-    _redis = new Redis(process.env.REDIS_URL);
+    _redis = new Redis(REDIS_URL);
   }
   return _redis;
 }
