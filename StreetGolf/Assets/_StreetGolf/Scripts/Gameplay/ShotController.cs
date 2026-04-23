@@ -1,9 +1,11 @@
+using System;
 using UnityEngine;
 
 namespace StreetGolf
 {
     public class ShotController : MonoBehaviour
     {
+        public event Action OnShotFired;
         [Header("References")]
         public BallController ball;
 
@@ -46,6 +48,7 @@ namespace StreetGolf
 
             Vector3 force = delta.normalized * power;
             ball.ApplyForce(force);
+            OnShotFired?.Invoke();
         }
 
         // Intersect a screen-space ray with the y=0 ground plane.
