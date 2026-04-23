@@ -51,6 +51,12 @@ namespace StreetGolf
             OnShotFired?.Invoke();
         }
 
+        public void Reset()
+        {
+            _dragging       = false;
+            _dragStartWorld = Vector3.zero;
+        }
+
         // Intersect a screen-space ray with the y=0 ground plane.
         private Vector3 ScreenToGroundPoint(Vector3 screenPos)
         {
