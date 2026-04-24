@@ -7,17 +7,16 @@ namespace StreetGolf
     public class BallController : MonoBehaviour
     {
         [Header("Tuning")]
-        public float stopThreshold    = 0.05f;
+        public float stopThreshold      = 0.05f;
         public int   stopFramesRequired = 8;     // consecutive slow frames before "stopped"
-        public float dragGround       = 1f;
-        public float angularDrag      = 2f;
+        public float linearDrag         = 1f;
+        public float angularDrag        = 2f;
 
         [Header("State — read only")]
         [SerializeField] private bool _isMoving;
 
         public bool IsMoving => _isMoving;
 
-        // Fired once when ball transitions from moving to fully stopped.
         public event Action OnStopped;
 
         private Rigidbody _rb;
@@ -27,7 +26,7 @@ namespace StreetGolf
         void Awake()
         {
             _rb = GetComponent<Rigidbody>();
-            _rb.drag        = dragGround;
+            _rb.drag        = linearDrag;
             _rb.angularDrag = angularDrag;
             _startPosition  = transform.position;
         }
@@ -48,8 +47,7 @@ namespace StreetGolf
                 {
                     _isMoving       = false;
                     _slowFrameCount = 0;
-                    _rb.velocity        = Vector3.zero;
-                    _rb.angularVelocity = Vector3.zero;
+                    ZeroVelocity();
                     OnStopped?.Invoke();
                 }
             }
@@ -64,12 +62,17 @@ namespace StreetGolf
 
         public void ResetBall()
         {
+            ZeroVelocity();
+            transform.position = _startPosition;
+            transform.rotation = Quaternion.identity;
+            _isMoving          = false;
+            _slowFrameCount    = 0;
+        }
+
+        private void ZeroVelocity()
+        {
             _rb.velocity        = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
-            transform.position  = _startPosition;
-            transform.rotation  = Quaternion.identity;
-            _isMoving           = false;
-            _slowFrameCount     = 0;
         }
     }
 }

@@ -38,8 +38,7 @@ namespace StreetGolf
 
         private void Fire(Vector3 dragEnd)
         {
-            // Pull-back: shot direction is opposite to drag
-            Vector3 delta = _dragStartWorld - dragEnd;
+            Vector3 delta = _dragStartWorld - dragEnd; // pull-back: shot goes opposite to drag
             float distance = Mathf.Clamp(delta.magnitude, 0f, maxDragDistance);
             float power = (distance / maxDragDistance) * maxPower * powerMultiplier;
 
@@ -53,11 +52,9 @@ namespace StreetGolf
 
         public void Reset()
         {
-            _dragging       = false;
-            _dragStartWorld = Vector3.zero;
+            _dragging = false;
         }
 
-        // Intersect a screen-space ray with the y=0 ground plane.
         private Vector3 ScreenToGroundPoint(Vector3 screenPos)
         {
             Ray ray = Camera.main.ScreenPointToRay(screenPos);
