@@ -105,3 +105,15 @@ label { font-size: 0.85rem; font-weight: 600; color: var(--gray-600); display: b
   margin: 0 auto;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@media print {
+  body { background: #fff; }
+  header, nav, footer, .no-print { display: none !important; }
+  main { padding: 0 !important; }
+  #cap-statement-preview {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+}

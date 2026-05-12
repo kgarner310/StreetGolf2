@@ -3,6 +3,7 @@ import ProfilePage from './components/ProfilePage.jsx'
 import ContractsPage from './components/ContractsPage.jsx'
 import JobsPage from './components/JobsPage.jsx'
 import RegistrationPage from './components/RegistrationPage.jsx'
+import CapabilityStatementPage from './components/CapabilityStatement.jsx'
 
 const DEFAULT_PROFILE = {
   name: '',
@@ -20,6 +21,7 @@ const DEFAULT_PROFILE = {
 const TABS = [
   { id: 'contracts', label: '📋 Contracts', title: 'SAM.gov Contracts' },
   { id: 'jobs', label: '💼 Jobs', title: 'USAJobs' },
+  { id: 'capability', label: '📄 Cap Statement', title: 'Capability Statement' },
   { id: 'register', label: '✅ Registration', title: 'Checklist' },
   { id: 'profile', label: '👤 Profile', title: 'My Profile' },
 ]
@@ -87,6 +89,7 @@ export default function App() {
         {tab === 'profile' && <ProfilePage profile={profile} onSave={handleSaveProfile} />}
         {tab === 'contracts' && <ContractsPage profile={profile} />}
         {tab === 'jobs' && <JobsPage profile={profile} />}
+        {tab === 'capability' && <CapabilityStatementPage profile={profile} />}
         {tab === 'register' && <RegistrationPage />}
       </main>
 
