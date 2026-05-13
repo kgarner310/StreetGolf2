@@ -71,6 +71,8 @@ export async function runSearch({ service, when, date, deadline, anchor, locatio
       departure: departureLocation,
       homeLocation: locations.home,
       workLocation: locations.work,
+      userVibeAesthetics: store.vibeProfile?.analysis?.aesthetics ?? [],
+      userVibeTags: store.vibeProfile?.analysis?.vibe_tags ?? [],
     }
   })
 

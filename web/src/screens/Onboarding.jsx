@@ -92,7 +92,7 @@ export default function Onboarding() {
           school: schoolCoords ? { label: schoolLabel, lat: schoolCoords.lat, lng: schoolCoords.lng } : null,
         },
       })
-      navigate('/search')
+      navigate('/vibe') // Send to vibe check after onboarding
     } catch {
       setGeoError('Location lookup failed. Please try again.')
       setGeocoding(false)
@@ -102,7 +102,7 @@ export default function Onboarding() {
   return (
     <div style={s.container}>
       <div style={s.header}>
-        <div style={s.logo}>chic<span style={{ color: 'var(--rose)' }}>finds</span></div>
+        <div style={s.logo}>Chic<span style={{color:'var(--rose)'}}>Pick</span></div>
         <div style={s.progressBar}>
           <div style={{ ...s.progressFill, width: `${progress}%` }} />
         </div>

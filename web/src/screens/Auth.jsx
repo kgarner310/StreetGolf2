@@ -38,7 +38,7 @@ export default function Auth() {
   return (
     <div style={s.container}>
       <div style={s.card}>
-        <div style={s.logo}>chic<span style={{ color: 'var(--rose)' }}>finds</span></div>
+        <div style={s.logo}>Chic<span style={{color:'var(--rose)'}}>Pick</span></div>
         <h2 style={s.title}>Find your perfect stylist</h2>
         <p style={s.subtitle}>Enter your email to get started. No password, no friction.</p>
 

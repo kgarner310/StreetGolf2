@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom'
+import { useStore } from '../store'
 
 export default function StylistCard({ stylist, rank }) {
   const navigate = useNavigate()
+  const vibeProfile = useStore(s => s.vibeProfile)
   const ig = stylist.instagram_analysis
 
   const reputationLabel = stylist.reputation_score >= 4.8
@@ -10,8 +12,27 @@ export default function StylistCard({ stylist, rank }) {
     ? 'Highly Rated'
     : 'Well Reviewed'
 
+  // Vibe match: overlap between user's aesthetics and stylist's vibe_aesthetics
+  const vibeMatch = computeVibeMatch(
+    vibeProfile?.analysis?.aesthetics ?? [],
+    vibeProfile?.analysis?.vibe_tags ?? [],
+    stylist.vibe_aesthetics ?? [],
+    ig?.detected_services ?? []
+  )
+
   return (
     <div style={s.card} onClick={() => navigate(`/stylist/${stylist.id}`)}>
+      {/* Vibe match banner — only shown when user has a vibe profile */}
+      {vibeMatch !== null && (
+        <div style={{ ...s.vibeBanner, ...(vibeMatch >= 80 ? s.vibeBannerHigh : vibeMatch >= 60 ? s.vibeBannerMid : s.vibeBannerLow) }}>
+          <span style={s.vibeMatchIcon}>{vibeMatch >= 80 ? '🔥' : vibeMatch >= 60 ? '✨' : '💫'}</span>
+          <span style={s.vibeMatchPct}>{vibeMatch}% vibe match</span>
+          {vibeMatch >= 80 && <span style={s.vibeMatchLabel}>Your aesthetic twin</span>}
+          {vibeMatch >= 60 && vibeMatch < 80 && <span style={s.vibeMatchLabel}>Strong fit</span>}
+          {vibeMatch < 60 && <span style={s.vibeMatchLabel}>Different style, still skilled</span>}
+        </div>
+      )}
+
       {/* Photo + identity row */}
       <div style={s.topRow}>
         <div style={s.avatarWrap}>
@@ -174,4 +195,22 @@ const s = {
   slotLabel: { display: 'block', fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 },
   slotTime: { display: 'block', fontSize: 15, fontWeight: 700, color: 'var(--espresso)', marginTop: 2 },
   bookBtn: { padding: '12px 20px', background: 'var(--rose)', borderRadius: 'var(--radius-sm)', fontSize: 14, fontWeight: 700, color: 'white', flexShrink: 0 },
+
+  vibeBanner: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 'var(--radius-sm)', marginBottom: 12 },
+  vibeBannerHigh: { background: 'linear-gradient(90deg, #2c1a0e 0%, #5a2a40 100%)', color: 'white' },
+  vibeBannerMid: { background: 'var(--blush)', color: 'var(--espresso)' },
+  vibeBannerLow: { background: '#f5f5f5', color: 'var(--muted)' },
+  vibeMatchIcon: { fontSize: 16 },
+  vibeMatchPct: { fontWeight: 800, fontSize: 15 },
+  vibeMatchLabel: { fontSize: 12, opacity: 0.8, marginLeft: 'auto' },
+}
+
+function computeVibeMatch(userAesthetics, userTags, stylistAesthetics, stylistServices) {
+  if (!userAesthetics.length && !userTags.length) return null
+  if (!stylistAesthetics.length) return null
+  const allUser = [...userAesthetics, ...userTags].map(s => s.toLowerCase())
+  const allStylest = stylistAesthetics.map(s => s.toLowerCase())
+  const overlap = allUser.filter(a => allStylest.some(b => b.includes(a) || a.includes(b))).length
+  const score = Math.round((overlap / Math.max(allUser.length, 1)) * 100)
+  return Math.min(Math.max(score, 15), 98) // clamp 15–98 so it never shows 0% or 100%
 }

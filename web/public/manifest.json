@@ -1,6 +1,6 @@
 {
-  "name": "chicfinds",
-  "short_name": "chicfinds",
+  "name": "ChicPick",
+  "short_name": "ChicPick",
   "description": "Find the top hairstylists in your area who do exactly what you want.",
   "start_url": "/",
   "display": "standalone",

@@ -2,7 +2,7 @@
 export async function geocode(address) {
   const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'chicfinds-app/1.0' }
+    headers: { 'User-Agent': 'ChicPick-app/1.0' }
   })
   if (!res.ok) return null
   const data = await res.json()
@@ -13,7 +13,7 @@ export async function geocode(address) {
 // Reverse geocode coords → neighborhood label
 export async function reverseGeocode(lat, lng) {
   const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-  const res = await fetch(url, { headers: { 'User-Agent': 'chicfinds-app/1.0' } })
+  const res = await fetch(url, { headers: { 'User-Agent': 'ChicPick-app/1.0' } })
   if (!res.ok) return null
   const data = await res.json()
   const addr = data.address

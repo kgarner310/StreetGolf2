@@ -29,6 +29,9 @@ export const useStore = create(
       resultsLoading: false,
       resultsError: null,
 
+      // Vibe profile (user's Instagram aesthetic analysis)
+      vibeProfile: null,   // { handle, analysis, analyzedAt }
+
       setOnboarding: async (data) => {
         set({ ...data, onboardingComplete: true })
         // Persist to Supabase if signed in
@@ -77,6 +80,7 @@ export const useStore = create(
       setResults: (results) => set({ results, resultsLoading: false }),
       setResultsLoading: (v) => set({ resultsLoading: v }),
       setResultsError: (e) => set({ resultsError: e, resultsLoading: false }),
+      setVibeProfile: (vibe) => set({ vibeProfile: vibe }),
 
       computedDepartureAnchor: () => {
         const { locations } = get()
@@ -100,6 +104,7 @@ export const useStore = create(
         budgetTier: s.budgetTier,
         constraints: s.constraints,
         locations: s.locations,
+        vibeProfile: s.vibeProfile,
       }),
     }
   )

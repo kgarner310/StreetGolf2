@@ -18,7 +18,7 @@ export default function Search() {
   const {
     locations, searchService, searchWhen, searchDate, searchDeadline,
     departureAnchor, setSearchContext, setResults, setResultsLoading, setResultsError,
-    computedDepartureAnchor
+    computedDepartureAnchor, vibeProfile
   } = store
 
   const [service, setService] = useState(searchService || '')
@@ -56,10 +56,16 @@ export default function Search() {
     <div style={s.container}>
       <div style={s.header}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={s.logo}>chic<span style={{ color: 'var(--rose)' }}>finds</span></div>
-          <Link to="/settings" style={{ fontSize: 22, lineHeight: 1 }}>⚙️</Link>
+          <div style={s.logo}>Chic<span style={{color:'var(--rose)'}}>Pick</span></div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <Link to="/vibe" style={{ fontSize: 20, lineHeight: 1 }} title="Vibe Check">✨</Link>
+            <Link to="/settings" style={{ fontSize: 20, lineHeight: 1 }} title="Settings">⚙️</Link>
+          </div>
         </div>
-        <div style={s.tagline}>Top stylists in your area, for exactly what you want.</div>
+        {vibeProfile
+          ? <div style={s.vibeActive}>✨ Vibe matching on · <span style={{ color: 'var(--rose)', fontWeight: 700 }}>@{vibeProfile.handle}</span></div>
+          : <div style={s.tagline}>Top stylists in your area, for exactly what you want.</div>
+        }
       </div>
 
       <div style={s.body}>
@@ -161,6 +167,7 @@ const s = {
   header: { padding: '28px 24px 20px', background: 'var(--white)', borderBottom: '1px solid var(--border)' },
   logo: { fontSize: 26, fontWeight: 800, color: 'var(--espresso)' },
   tagline: { marginTop: 6, fontSize: 14, color: 'var(--muted)', lineHeight: 1.4 },
+  vibeActive: { marginTop: 6, fontSize: 13, color: 'var(--charcoal)', lineHeight: 1.4 },
   body: { flex: 1, overflowY: 'auto', padding: '24px 24px 0' },
   section: { marginBottom: 28 },
   label: { display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--espresso)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10 },
