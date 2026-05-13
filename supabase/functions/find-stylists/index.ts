@@ -17,32 +17,33 @@ serve(async (req) => {
 
   const body = await req.json()
   const {
-    serviceId, serviceRaw, hairTexture, budgetTier, constraints,
-    when, date, deadline, departure, homeLocation, workLocation
+    serviceId, serviceRaw, hairTexture, hairLength, budgetTier, constraints,
+    when, date, deadline, departure, homeLocation, workLocation,
+    userVibeAesthetics = [], userVibeTags = [], verifiedOnly = false,
   } = body
 
   if (!departure) return json({ error: 'departure location required' }, 400)
 
   try {
-    // 1. Find candidate stylists within 45-minute radius via PostGIS
     const candidates = await findCandidates({ serviceId, hairTexture, budgetTier, departure })
 
     if (!candidates.length) return json({ results: [] })
 
-    // 2. Score all candidates in parallel
     const scored = await Promise.all(
-      candidates.map(s => scoreStylest(s, { serviceId, hairTexture, departure, homeLocation, workLocation, deadline }))
+      candidates.map(s => scoreStylest(s, {
+        serviceId, hairTexture, hairLength, departure,
+        homeLocation, workLocation, deadline,
+        userVibeAesthetics, userVibeTags,
+      }))
     )
 
-    // 3. Sort by composite score, take top 5
     const top = scored
       .filter(s => s.composite >= 0.3)
+      .filter(s => !verifiedOnly || s._trustTier === 'verified')
       .sort((a, b) => b.composite - a.composite)
       .slice(0, 5)
 
-    // 4. Format result cards
     const results = top.map(formatCard)
-
     return json({ results })
   } catch (e) {
     console.error(e)
@@ -51,13 +52,12 @@ serve(async (req) => {
 })
 
 async function findCandidates({ serviceId, hairTexture, budgetTier, departure }: any) {
-  // PostGIS query: stylists within ~30 mile radius matching service category
   const serviceCategory = serviceId?.split('.')?.[0] ?? serviceId
 
   const { data, error } = await supabase.rpc('find_nearby_stylists', {
     lat: departure.lat,
     lng: departure.lng,
-    radius_meters: 48280, // 30 miles
+    radius_meters: 48280,
     service_filter: serviceCategory,
     texture_filter: hairTexture ?? null,
     budget_tier_filter: budgetTier ?? null,
@@ -65,7 +65,6 @@ async function findCandidates({ serviceId, hairTexture, budgetTier, departure }:
   })
 
   if (error) {
-    // Fallback if RPC not yet created — direct query
     const { data: fallback } = await supabase
       .from('stylists')
       .select('*')
@@ -79,35 +78,43 @@ async function findCandidates({ serviceId, hairTexture, budgetTier, departure }:
 }
 
 async function scoreStylest(stylist: any, context: any) {
-  const { serviceId, hairTexture, departure, homeLocation, workLocation, deadline } = context
+  const { serviceId, hairTexture, hairLength, departure, homeLocation, workLocation, deadline, userVibeAesthetics, userVibeTags } = context
 
-  // --- Specialization match (35%) ---
+  // Specialization: service 55% + texture 30% + length 15%
   const serviceScore = computeServiceMatch(stylist, serviceId)
   const textureScore = computeTextureMatch(stylist, hairTexture)
-  const specializationScore = serviceScore * 0.6 + textureScore * 0.4
+  const lengthScore = computeLengthMatch(stylist, hairLength)
+  const specializationScore = serviceScore * 0.55 + textureScore * 0.30 + lengthScore * 0.15
 
-  // --- Reputation (20%) ---
+  // Reputation (15%)
   const reputationScore = computeReputation(stylist)
 
-  // --- Geography (20%) ---
+  // Geography (20%)
   const geoResult = await computeGeography(stylist, departure, homeLocation, workLocation)
 
-  // --- Availability (20%) ---
+  // Availability (20%)
   const availScore = computeAvailability(stylist, deadline)
 
-  // --- Portfolio / Instagram (5%) ---
+  // Vibe match (10%)
+  const vibeScore = computeVibeScore(stylist, userVibeAesthetics, userVibeTags)
+
+  // Portfolio / Instagram (5%)
   const portfolioScore = computePortfolio(stylist)
 
   const composite =
-    specializationScore * 0.35 +
-    reputationScore * 0.20 +
-    (geoResult.score) * 0.20 +
-    availScore * 0.20 +
-    portfolioScore * 0.05
+    specializationScore * 0.30 +
+    reputationScore     * 0.15 +
+    geoResult.score     * 0.20 +
+    availScore          * 0.20 +
+    vibeScore           * 0.10 +
+    portfolioScore      * 0.05
+
+  const trustTier = resolveTrustTier(stylist)
 
   return {
     ...stylist,
-    _scores: { specializationScore, reputationScore, geoScore: geoResult.score, availScore, portfolioScore },
+    _scores: { specializationScore, reputationScore, geoScore: geoResult.score, availScore, vibeScore, portfolioScore },
+    _trustTier: trustTier,
     composite,
     travel_minutes: geoResult.travelMinutes,
     on_your_way: geoResult.onYourWay,
@@ -132,7 +139,6 @@ function computeTextureMatch(stylist: any, hairTexture: string | null) {
     ...(stylist.instagram_texture_tags ?? []),
   ]
   if (textures.includes(hairTexture)) return 1.0
-  // Adjacent texture match
   const adjacency: Record<string, string[]> = {
     '4c': ['coily', 'curly'],
     'coily': ['4c', 'curly'],
@@ -141,8 +147,36 @@ function computeTextureMatch(stylist: any, hairTexture: string | null) {
     'straight': ['wavy'],
   }
   if ((adjacency[hairTexture] ?? []).some(t => textures.includes(t))) return 0.7
-  if (!textures.length) return 0.5 // unknown — don't penalize
+  if (!textures.length) return 0.5
   return 0.2
+}
+
+function computeLengthMatch(stylist: any, hairLength: string | null) {
+  if (!hairLength) return 0.5
+  const lengths: string[] = stylist.length_categories ?? []
+  if (!lengths.length) return 0.5 // unknown — don't penalize
+  if (lengths.includes(hairLength)) return 1.0
+  // Adjacent: medium bridges short↔long
+  const adjacency: Record<string, string[]> = {
+    short: ['medium'],
+    medium: ['short', 'long'],
+    long: ['medium', 'very_long'],
+    very_long: ['long'],
+  }
+  if ((adjacency[hairLength] ?? []).some(l => lengths.includes(l))) return 0.65
+  // short_cut_bias is a hard signal against long/very_long
+  if (stylist.short_cut_bias && (hairLength === 'long' || hairLength === 'very_long')) return 0.1
+  return 0.3
+}
+
+function computeVibeScore(stylist: any, userAesthetics: string[], userTags: string[]) {
+  if (!userAesthetics.length && !userTags.length) return 0.5 // neutral — not a penalty
+  const stylistAesthetics: string[] = stylist.vibe_aesthetics ?? []
+  if (!stylistAesthetics.length) return 0.4 // slight penalty for no vibe data when user has taste
+  const allUser = [...userAesthetics, ...userTags].map(s => s.toLowerCase())
+  const allStylest = stylistAesthetics.map(s => s.toLowerCase())
+  const overlap = allUser.filter(a => allStylest.some(b => b.includes(a) || a.includes(b))).length
+  return Math.min(overlap / Math.max(allUser.length, 1), 1.0)
 }
 
 function computeReputation(stylist: any) {
@@ -161,12 +195,8 @@ function computeReputation(stylist: any) {
     totalWeight += r.weight
   }
   const starScore = totalWeight > 0 ? weighted / totalWeight : 0.5
-
-  // Volume bonus (log scale, caps at 200 reviews → 1.0)
   const maxCount = Math.max(...ratings.map(r => r.count))
   const volumeScore = Math.min(Math.log10(maxCount + 1) / Math.log10(201), 1.0)
-
-  // Instagram sentiment bonus
   const igSentiment = stylist.instagram_sentiment_score ?? 0.75
   const igRepeat = stylist.instagram_repeat_client_ratio ?? 0
 
@@ -174,7 +204,6 @@ function computeReputation(stylist: any) {
 }
 
 async function computeGeography(stylist: any, departure: any, homeLocation: any, workLocation: any) {
-  // Use Google Routes API for travel time
   let travelMinutes = stylist._straight_line_minutes ?? 30
   let onYourWay = false
 
@@ -183,7 +212,6 @@ async function computeGeography(stylist: any, departure: any, homeLocation: any,
       const dest = extractCoords(stylist.location)
       travelMinutes = await getTravelMinutes(departure, dest)
 
-      // "On your way" check: stylist is between work and home with <15% detour
       if (workLocation && homeLocation) {
         const directMinutes = await getTravelMinutes(workLocation, homeLocation)
         const viaMinutes =
@@ -191,7 +219,7 @@ async function computeGeography(stylist: any, departure: any, homeLocation: any,
           (await getTravelMinutes(dest, homeLocation))
         onYourWay = viaMinutes <= directMinutes * 1.15
       }
-    } catch { /* use straight-line fallback */ }
+    } catch { /* straight-line fallback */ }
   }
 
   const score =
@@ -225,7 +253,6 @@ async function getTravelMinutes(origin: any, destination: any) {
 }
 
 function extractCoords(geography: any) {
-  // PostGIS geography comes back as GeoJSON or WKT
   if (typeof geography === 'object' && geography.coordinates) {
     return { lng: geography.coordinates[0], lat: geography.coordinates[1] }
   }
@@ -240,8 +267,7 @@ function computeAvailability(stylist: any, deadline: string | null) {
   const hoursAway = (new Date(next).getTime() - now) / 3600000
 
   if (deadline) {
-    // Filter out slots where service wouldn't finish in time
-    const service_duration = 120 // minutes, default
+    const service_duration = 120
     const slotEnd = new Date(next).getTime() + service_duration * 60000
     const deadlineMs = new Date(`${new Date().toDateString()} ${deadline}`).getTime()
     if (slotEnd > deadlineMs) return 0.1
@@ -260,6 +286,17 @@ function computePortfolio(stylist: any) {
   return Math.min(score, 1.0)
 }
 
+function resolveTrustTier(stylist: any): 'verified' | 'mismatch' | 'self_reported' {
+  const hasIg = stylist.instagram_handle && (
+    (stylist.instagram_detected_services ?? []).length > 0 ||
+    (stylist.instagram_detected_textures ?? []).length > 0
+  )
+  if (!hasIg) return 'self_reported'
+  const claimsTextured = (stylist.texture_categories ?? []).some((t: string) => ['curly', 'coily', '4c'].includes(t))
+  if (stylist.short_cut_bias && claimsTextured) return 'mismatch'
+  return 'verified'
+}
+
 function formatCard(s: any) {
   const next = s.next_available_at ? new Date(s.next_available_at) : null
   const nextLabel = next
@@ -273,6 +310,8 @@ function formatCard(s: any) {
     ? {
         detected_services: s.instagram_detected_services ?? [],
         confirmed_textures: s.instagram_detected_textures ?? [],
+        length_specialties: s.length_categories ?? [],
+        short_cut_bias: s.short_cut_bias ?? false,
         sentiment_score: s.instagram_sentiment_score ?? 0.75,
         repeat_client_ratio: s.instagram_repeat_client_ratio ?? 0,
         notable_comments: s.instagram_notable_comments ?? [],
@@ -293,14 +332,17 @@ function formatCard(s: any) {
     styleseat_rating: s.styleseat_rating,
     booksy_rating: s.booksy_rating,
     service_ids: s.service_ids,
+    texture_categories: s.texture_categories,
     price_floor: s.price_floor,
     price_ceiling: s.price_ceiling,
     travel_minutes: s.travel_minutes,
     on_your_way: s.on_your_way,
+    vibe_aesthetics: s.vibe_aesthetics ?? [],
     next_slot_label: nextLabel,
     next_slot_short: nextShort,
     booking_url: s.booking_url,
     instagram_analysis: igAnalysis,
+    trust_tier: s._trustTier,
     _composite: s.composite,
   }
 }

@@ -8,6 +8,7 @@ export const useStore = create(
       // Onboarding
       onboardingComplete: false,
       hairTexture: null,        // 'straight' | 'wavy' | 'curly' | 'coily' | '4c'
+      hairLength: null,         // 'short' | 'medium' | 'long' | 'very_long'
       services: [],             // e.g. ['braids', 'color']
       budgetTier: null,         // 'under75' | '75to150' | '150plus'
       constraints: [],          // ['no_heat', 'no_chemicals', ...]
@@ -41,6 +42,7 @@ export const useStore = create(
         await supabase.from('user_profiles').upsert({
           id: user.id,
           hair_texture: data.hairTexture,
+          hair_length: data.hairLength,
           frequent_services: data.services,
           budget_tier: data.budgetTier,
           hair_constraints: data.constraints,
@@ -66,6 +68,7 @@ export const useStore = create(
         set({
           onboardingComplete: true,
           hairTexture: data.hair_texture,
+          hairLength: data.hair_length ?? null,
           services: data.frequent_services ?? [],
           budgetTier: data.budget_tier,
           constraints: data.hair_constraints ?? [],
@@ -100,6 +103,7 @@ export const useStore = create(
       partialize: (s) => ({
         onboardingComplete: s.onboardingComplete,
         hairTexture: s.hairTexture,
+        hairLength: s.hairLength,
         services: s.services,
         budgetTier: s.budgetTier,
         constraints: s.constraints,

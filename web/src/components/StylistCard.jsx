@@ -12,7 +12,6 @@ export default function StylistCard({ stylist, rank }) {
     ? 'Highly Rated'
     : 'Well Reviewed'
 
-  // Vibe match: overlap between user's aesthetics and stylist's vibe_aesthetics
   const vibeMatch = computeVibeMatch(
     vibeProfile?.analysis?.aesthetics ?? [],
     vibeProfile?.analysis?.vibe_tags ?? [],
@@ -20,9 +19,11 @@ export default function StylistCard({ stylist, rank }) {
     ig?.detected_services ?? []
   )
 
+  const trustTier = computeTrustTier(stylist, ig)
+
   return (
     <div style={s.card} onClick={() => navigate(`/stylist/${stylist.id}`)}>
-      {/* Vibe match banner — only shown when user has a vibe profile */}
+      {/* Vibe match banner */}
       {vibeMatch !== null && (
         <div style={{ ...s.vibeBanner, ...(vibeMatch >= 80 ? s.vibeBannerHigh : vibeMatch >= 60 ? s.vibeBannerMid : s.vibeBannerLow) }}>
           <span style={s.vibeMatchIcon}>{vibeMatch >= 80 ? '🔥' : vibeMatch >= 60 ? '✨' : '💫'}</span>
@@ -57,16 +58,25 @@ export default function StylistCard({ stylist, rank }) {
         </div>
       </div>
 
-      {/* Instagram evidence — the core differentiator */}
+      {/* Instagram evidence panel */}
       {ig && (
         <div style={s.igSection}>
           <div style={s.igHeader}>
             <span style={s.igIcon}>📸</span>
-            <span style={s.igTitle}>Verified from Instagram</span>
+            <span style={s.igTitle}>
+              {trustTier === 'verified' ? 'Portfolio Verified' : trustTier === 'mismatch' ? 'Claims vs. Portfolio' : 'From Instagram'}
+            </span>
             <span style={s.igHandle}>@{stylist.instagram_handle}</span>
+            <TrustBadge tier={trustTier} />
           </div>
 
-          {/* Detected services from photo analysis */}
+          {/* Short-cut bias warning for long-haired users */}
+          {ig.short_cut_bias && (
+            <div style={s.biasBanner}>
+              ⚠️ Portfolio shows mostly short styles — confirm they work with your length
+            </div>
+          )}
+
           {ig.detected_services?.length > 0 && (
             <div style={s.igRow}>
               <span style={s.igRowLabel}>Portfolio shows:</span>
@@ -78,7 +88,6 @@ export default function StylistCard({ stylist, rank }) {
             </div>
           )}
 
-          {/* Texture confirmation */}
           {ig.confirmed_textures?.length > 0 && (
             <div style={s.igRow}>
               <span style={s.igRowLabel}>Works with:</span>
@@ -90,7 +99,17 @@ export default function StylistCard({ stylist, rank }) {
             </div>
           )}
 
-          {/* Client comment sentiment */}
+          {ig.length_specialties?.length > 0 && (
+            <div style={s.igRow}>
+              <span style={s.igRowLabel}>Hair lengths:</span>
+              <div style={s.tagRow}>
+                {ig.length_specialties.map(l => (
+                  <span key={l} style={{ ...s.tag, ...s.tagLength }}>{l}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={s.igRow}>
             <span style={s.igRowLabel}>Client reactions:</span>
             <div style={s.sentimentBar}>
@@ -101,14 +120,12 @@ export default function StylistCard({ stylist, rank }) {
             </span>
           </div>
 
-          {/* Repeat client signal */}
           {ig.repeat_client_ratio >= 0.3 && (
             <div style={s.repeatBadge}>
               🔁 {Math.round(ig.repeat_client_ratio * 100)}% of commenters are regulars
             </div>
           )}
 
-          {/* Sample portfolio photos */}
           {ig.sample_photos?.length > 0 && (
             <div style={s.photoRow}>
               {ig.sample_photos.slice(0, 3).map((url, i) => (
@@ -116,6 +133,14 @@ export default function StylistCard({ stylist, rank }) {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* No IG — show self-reported badge */}
+      {!ig && (
+        <div style={s.selfReportedBanner}>
+          <span style={s.selfReportedIcon}>📋</span>
+          <span style={s.selfReportedText}>Self-reported services — no portfolio verification yet</span>
         </div>
       )}
 
@@ -134,6 +159,16 @@ export default function StylistCard({ stylist, rank }) {
       </div>
     </div>
   )
+}
+
+function TrustBadge({ tier }) {
+  if (tier === 'verified') {
+    return <span style={s.trustVerified}>✓ Verified</span>
+  }
+  if (tier === 'mismatch') {
+    return <span style={s.trustMismatch}>⚠ Mismatch</span>
+  }
+  return null
 }
 
 const s = {
@@ -175,11 +210,17 @@ const s = {
   igTitle: { fontSize: 12, fontWeight: 700, color: 'var(--espresso)', textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 },
   igHandle: { fontSize: 12, color: 'var(--muted)' },
 
+  trustVerified: { fontSize: 10, fontWeight: 800, background: '#e8f5e9', color: '#2e7d32', padding: '2px 7px', borderRadius: 8, marginLeft: 4 },
+  trustMismatch: { fontSize: 10, fontWeight: 800, background: '#fff3e0', color: '#e65100', padding: '2px 7px', borderRadius: 8, marginLeft: 4 },
+
+  biasBanner: { fontSize: 12, color: '#7a4000', background: '#fff3e0', border: '1px solid #ffe0b2', borderRadius: 6, padding: '7px 10px', marginBottom: 10 },
+
   igRow: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
   igRowLabel: { fontSize: 12, color: 'var(--muted)', fontWeight: 600, minWidth: 90 },
   tagRow: { display: 'flex', flexWrap: 'wrap', gap: 6 },
   tag: { fontSize: 11, fontWeight: 600, background: 'white', color: 'var(--espresso)', padding: '3px 10px', borderRadius: 12, border: '1px solid var(--border)' },
   tagTexture: { background: 'var(--espresso)', color: 'white', border: 'none' },
+  tagLength: { background: 'var(--rose)', color: 'white', border: 'none' },
 
   sentimentBar: { height: 6, width: 80, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' },
   sentimentFill: { height: '100%', background: 'var(--rose)', borderRadius: 3 },
@@ -189,6 +230,10 @@ const s = {
 
   photoRow: { display: 'flex', gap: 6, marginTop: 4 },
   portfolioPhoto: { width: 72, height: 72, borderRadius: 'var(--radius-sm)', objectFit: 'cover', border: '2px solid white' },
+
+  selfReportedBanner: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: '#f5f5f5', borderRadius: 'var(--radius-sm)', marginBottom: 14 },
+  selfReportedIcon: { fontSize: 14 },
+  selfReportedText: { fontSize: 12, color: 'var(--muted)' },
 
   bookRow: { display: 'flex', alignItems: 'center', gap: 12 },
   slotInfo: { flex: 1 },
@@ -212,5 +257,15 @@ function computeVibeMatch(userAesthetics, userTags, stylistAesthetics, stylistSe
   const allStylest = stylistAesthetics.map(s => s.toLowerCase())
   const overlap = allUser.filter(a => allStylest.some(b => b.includes(a) || a.includes(b))).length
   const score = Math.round((overlap / Math.max(allUser.length, 1)) * 100)
-  return Math.min(Math.max(score, 15), 98) // clamp 15–98 so it never shows 0% or 100%
+  return Math.min(Math.max(score, 15), 98)
+}
+
+function computeTrustTier(stylist, ig) {
+  if (!ig) return 'self_reported'
+  // Mismatch: claims curly/coily/4C specialization but Instagram shows short_cut_bias
+  const claimsTextured = (stylist.texture_categories ?? []).some(t => ['curly', 'coily', '4c'].includes(t))
+  if (ig.short_cut_bias && claimsTextured) return 'mismatch'
+  // Verified: IG analysis has confirmed textures or detected services
+  if ((ig.confirmed_textures?.length > 0) || (ig.detected_services?.length > 0)) return 'verified'
+  return 'self_reported'
 }

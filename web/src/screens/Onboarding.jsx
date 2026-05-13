@@ -11,6 +11,13 @@ const TEXTURES = [
   { id: '4c', label: '4C', emoji: '✦', desc: 'Tightly coiled, densely packed' },
 ]
 
+const LENGTHS = [
+  { id: 'short', label: 'Short', emoji: '✂️', desc: 'Pixie to bob — above shoulder' },
+  { id: 'medium', label: 'Medium', emoji: '📏', desc: 'Shoulder to bra strap' },
+  { id: 'long', label: 'Long', emoji: '🌊', desc: 'Bra strap to waist' },
+  { id: 'very_long', label: 'Very Long', emoji: '✨', desc: 'Hip length and beyond' },
+]
+
 const SERVICES = [
   { id: 'braids', label: 'Braids & Locs' },
   { id: 'natural', label: 'Natural Styles' },
@@ -34,7 +41,7 @@ const CONSTRAINTS = [
   { id: 'natural_only', label: 'Natural products only' },
 ]
 
-const STEPS = ['texture', 'services', 'budget', 'location', 'constraints']
+const STEPS = ['texture', 'length', 'services', 'budget', 'location', 'constraints']
 
 export default function Onboarding() {
   const navigate = useNavigate()
@@ -42,6 +49,7 @@ export default function Onboarding() {
 
   const [step, setStep] = useState(0)
   const [texture, setTexture] = useState(null)
+  const [length, setLength] = useState(null)
   const [services, setServices] = useState([])
   const [budget, setBudget] = useState(null)
   const [homeLabel, setHomeLabel] = useState('')
@@ -61,9 +69,10 @@ export default function Onboarding() {
 
   const canAdvance = () => {
     if (step === 0) return !!texture
-    if (step === 1) return services.length > 0
-    if (step === 2) return !!budget
-    if (step === 3) return homeLabel.trim().length > 2
+    if (step === 1) return !!length
+    if (step === 2) return services.length > 0
+    if (step === 3) return !!budget
+    if (step === 4) return homeLabel.trim().length > 2
     return true
   }
 
@@ -83,6 +92,7 @@ export default function Onboarding() {
       }
       setOnboarding({
         hairTexture: texture,
+        hairLength: length,
         services,
         budgetTier: budget,
         constraints,
@@ -92,7 +102,7 @@ export default function Onboarding() {
           school: schoolCoords ? { label: schoolLabel, lat: schoolCoords.lat, lng: schoolCoords.lng } : null,
         },
       })
-      navigate('/vibe') // Send to vibe check after onboarding
+      navigate('/vibe')
     } catch {
       setGeoError('Location lookup failed. Please try again.')
       setGeocoding(false)
@@ -129,6 +139,24 @@ export default function Onboarding() {
         )}
 
         {step === 1 && (
+          <Step title="How long is your hair?" subtitle="Curl specialists often skew short or long — this narrows it to who actually works with your length.">
+            <div style={s.textureGrid}>
+              {LENGTHS.map(l => (
+                <button
+                  key={l.id}
+                  onClick={() => setLength(l.id)}
+                  style={{ ...s.textureCard, ...(length === l.id ? s.textureCardActive : {}) }}
+                >
+                  <span style={s.textureEmoji}>{l.emoji}</span>
+                  <span style={s.textureName}>{l.label}</span>
+                  <span style={s.textureDesc}>{l.desc}</span>
+                </button>
+              ))}
+            </div>
+          </Step>
+        )}
+
+        {step === 2 && (
           <Step title="What do you usually get done?" subtitle="Pick everything that applies — we'll match all of them.">
             <div style={s.chipGrid}>
               {SERVICES.map(sv => (
@@ -144,7 +172,7 @@ export default function Onboarding() {
           </Step>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <Step title="What's your usual budget?" subtitle="Per appointment, before tip.">
             <div style={s.budgetCol}>
               {BUDGETS.map(b => (
@@ -161,7 +189,7 @@ export default function Onboarding() {
           </Step>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <Step title="Where are you based?" subtitle="Your home is required. Work and school let us find stylists on your route.">
             <div style={s.locationCol}>
               <LocationField icon="🏠" placeholder="Home neighborhood or zip *" value={homeLabel} onChange={setHomeLabel} />
@@ -171,7 +199,7 @@ export default function Onboarding() {
           </Step>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <Step title="Any hard limits?" subtitle="Optional — skip if none apply.">
             <div style={s.chipGrid}>
               {CONSTRAINTS.map(c => (

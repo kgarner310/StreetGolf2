@@ -47,7 +47,7 @@ export function computeAnchor(locations) {
   return 'home'
 }
 
-export async function runSearch({ service, when, date, deadline, anchor, locations, store }) {
+export async function runSearch({ service, when, date, deadline, anchor, locations, store, verifiedOnly = false }) {
   const serviceId = resolveService(service)
   const departureLocation = anchor === 'current'
     ? await getCurrentCoords()
@@ -69,10 +69,12 @@ export async function runSearch({ service, when, date, deadline, anchor, locatio
       date: date || null,
       deadline: deadline || null,
       departure: departureLocation,
+      hairLength: store.hairLength,
       homeLocation: locations.home,
       workLocation: locations.work,
       userVibeAesthetics: store.vibeProfile?.analysis?.aesthetics ?? [],
       userVibeTags: store.vibeProfile?.analysis?.vibe_tags ?? [],
+      verifiedOnly,
     }
   })
 

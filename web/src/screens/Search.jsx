@@ -27,6 +27,7 @@ export default function Search() {
   const [deadline, setDeadline] = useState(searchDeadline || '')
   const [anchor, setAnchor] = useState(computedDepartureAnchor())
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [verifiedOnly, setVerifiedOnly] = useState(false)
 
   const filtered = service.length > 0
     ? SERVICE_SUGGESTIONS.filter(s => s.toLowerCase().includes(service.toLowerCase()))
@@ -43,7 +44,7 @@ export default function Search() {
     setResultsLoading(true)
     navigate('/results')
     try {
-      const data = await runSearch({ service, when, date, deadline, anchor, locations, store })
+      const data = await runSearch({ service, when, date, deadline, anchor, locations, store, verifiedOnly })
       setResults(data)
     } catch (e) {
       setResultsError(e.message)
@@ -140,6 +141,20 @@ export default function Search() {
           )}
         </div>
 
+        {/* Verified portfolios toggle */}
+        <div style={s.section}>
+          <button
+            onClick={() => setVerifiedOnly(v => !v)}
+            style={{ ...s.verifiedToggle, ...(verifiedOnly ? s.verifiedToggleOn : {}) }}
+          >
+            <span style={s.verifiedDot}>{verifiedOnly ? '✓' : '○'}</span>
+            <div>
+              <div style={s.verifiedLabel}>Portfolio-verified stylists only</div>
+              <div style={s.verifiedSub}>Only show stylists whose Instagram confirms their skills</div>
+            </div>
+          </button>
+        </div>
+
         {/* Deadline nudge */}
         {when === 'asap' && (
           <div style={s.section}>
@@ -181,4 +196,9 @@ const s = {
   footer: { padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--white)' },
   searchBtn: { width: '100%', padding: '16px', background: 'var(--rose)', borderRadius: 'var(--radius-sm)', fontSize: 16, fontWeight: 700, color: 'var(--white)' },
   searchBtnDisabled: { background: 'var(--border)', color: 'var(--muted)' },
+  verifiedToggle: { width: '100%', display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-sm)', textAlign: 'left' },
+  verifiedToggleOn: { borderColor: 'var(--rose)', background: '#fdf0f3' },
+  verifiedDot: { fontSize: 18, marginTop: 1, color: 'var(--rose)', flexShrink: 0 },
+  verifiedLabel: { fontSize: 14, fontWeight: 700, color: 'var(--espresso)' },
+  verifiedSub: { fontSize: 12, color: 'var(--muted)', marginTop: 2 },
 }
