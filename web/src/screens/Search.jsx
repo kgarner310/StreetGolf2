@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { useStore } from '../store'
 import { runSearch } from '../lib/search'
 
@@ -55,7 +55,10 @@ export default function Search() {
   return (
     <div style={s.container}>
       <div style={s.header}>
-        <div style={s.logo}>chic<span style={{ color: 'var(--rose)' }}>finds</span></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={s.logo}>chic<span style={{ color: 'var(--rose)' }}>finds</span></div>
+          <Link to="/settings" style={{ fontSize: 22, lineHeight: 1 }}>⚙️</Link>
+        </div>
         <div style={s.tagline}>Top stylists in your area, for exactly what you want.</div>
       </div>
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
+import { geocode } from '../lib/geocode'
 
 const TEXTURES = [
   { id: 'straight', label: 'Straight', emoji: '〜', desc: 'Little to no curl pattern' },
@@ -47,6 +48,8 @@ export default function Onboarding() {
   const [workLabel, setWorkLabel] = useState('')
   const [schoolLabel, setSchoolLabel] = useState('')
   const [constraints, setConstraints] = useState([])
+  const [geocoding, setGeocoding] = useState(false)
+  const [geoError, setGeoError] = useState('')
 
   const progress = ((step + 1) / STEPS.length) * 100
 
@@ -64,19 +67,36 @@ export default function Onboarding() {
     return true
   }
 
-  const finish = () => {
-    setOnboarding({
-      hairTexture: texture,
-      services,
-      budgetTier: budget,
-      constraints,
-      locations: {
-        home: homeLabel ? { label: homeLabel, lat: null, lng: null } : null,
-        work: workLabel ? { label: workLabel, lat: null, lng: null } : null,
-        school: schoolLabel ? { label: schoolLabel, lat: null, lng: null } : null,
-      },
-    })
-    navigate('/search')
+  const finish = async () => {
+    setGeocoding(true)
+    setGeoError('')
+    try {
+      const [homeCoords, workCoords, schoolCoords] = await Promise.all([
+        homeLabel ? geocode(homeLabel) : null,
+        workLabel ? geocode(workLabel) : null,
+        schoolLabel ? geocode(schoolLabel) : null,
+      ])
+      if (!homeCoords) {
+        setGeoError("Couldn't find your home location. Try a more specific address or zip code.")
+        setGeocoding(false)
+        return
+      }
+      setOnboarding({
+        hairTexture: texture,
+        services,
+        budgetTier: budget,
+        constraints,
+        locations: {
+          home: { label: homeLabel, lat: homeCoords.lat, lng: homeCoords.lng },
+          work: workCoords ? { label: workLabel, lat: workCoords.lat, lng: workCoords.lng } : null,
+          school: schoolCoords ? { label: schoolLabel, lat: schoolCoords.lat, lng: schoolCoords.lng } : null,
+        },
+      })
+      navigate('/search')
+    } catch {
+      setGeoError('Location lookup failed. Please try again.')
+      setGeocoding(false)
+    }
   }
 
   return (
@@ -164,6 +184,7 @@ export default function Onboarding() {
                 </button>
               ))}
             </div>
+            {geoError && <div style={s.geoError}>{geoError}</div>}
           </Step>
         )}
       </div>
@@ -181,8 +202,8 @@ export default function Onboarding() {
             Continue
           </button>
         ) : (
-          <button style={s.nextBtn} onClick={finish}>
-            Find My Stylists →
+          <button style={{ ...s.nextBtn, ...(geocoding ? s.nextBtnDisabled : {}) }} onClick={finish} disabled={geocoding}>
+            {geocoding ? 'Finding your location…' : 'Find My Stylists →'}
           </button>
         )}
       </div>
@@ -243,4 +264,5 @@ const s = {
   budgetLabel: { fontWeight: 700, fontSize: 16, color: 'var(--espresso)' },
   budgetDesc: { fontSize: 13, color: 'var(--muted)' },
   locationCol: { display: 'flex', flexDirection: 'column', gap: 12 },
+  geoError: { marginTop: 12, padding: '10px 14px', background: '#fff0f0', border: '1px solid #fcc', borderRadius: 8, fontSize: 13, color: '#c00' },
 }
