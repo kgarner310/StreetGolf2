@@ -28,28 +28,28 @@ serve(async (req) => {
 
   if (!GOOGLE_MAPS_KEY) return json({ error: 'GOOGLE_MAPS_KEY not configured' }, 500)
 
-  const { cities = ['Atlanta, GA'] } = await req.json().catch(() => ({}))
+  // Accept single city string or array — process only ONE city per invocation to stay within timeout
+  const body = await req.json().catch(() => ({}))
+  const cities: string[] = Array.isArray(body.cities) ? body.cities.slice(0, 1) : [body.city ?? 'Atlanta, GA']
+  const city = cities[0]
 
   let totalUpserted = 0
 
-  for (const city of cities) {
-    for (const query of SEARCH_QUERIES) {
-      const places = await searchPlaces(`${query} ${city}`)
-      for (const place of places) {
-        const detail = await getPlaceDetail(place.place_id)
-        if (!detail) continue
-        const stylist = normalizePlaceToStylist(detail, city)
-        const { error } = await supabase
-          .from('stylists')
-          .upsert(stylist, { onConflict: 'google_place_id', ignoreDuplicates: false })
-        if (!error) totalUpserted++
-      }
-      // Respect Google rate limits
-      await delay(200)
+  for (const query of SEARCH_QUERIES) {
+    const places = await searchPlaces(`${query} ${city}`)
+    for (const place of places) {
+      const detail = await getPlaceDetail(place.place_id)
+      if (!detail) continue
+      const stylist = normalizePlaceToStylist(detail, city)
+      const { error } = await supabase
+        .from('stylists')
+        .upsert(stylist, { onConflict: 'google_place_id', ignoreDuplicates: false })
+      if (!error) totalUpserted++
     }
+    await delay(200)
   }
 
-  return json({ upserted: totalUpserted })
+  return json({ city, upserted: totalUpserted })
 })
 
 async function searchPlaces(query: string) {
