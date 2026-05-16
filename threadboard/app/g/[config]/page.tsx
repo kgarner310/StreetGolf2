@@ -12,6 +12,7 @@ import PlayerSubmissionCard from '@/components/PlayerSubmissionCard';
 import ProgressStatus from '@/components/ProgressStatus';
 import WaitingOnBanner from '@/components/WaitingOnBanner';
 import BoardCard from '@/components/BoardCard';
+import SmsSignupInput from '@/components/SmsSignupInput';
 
 // Split into two components so hooks aren't called conditionally
 export default function GroupBoardPage() {
@@ -106,6 +107,7 @@ function GroupBoard({ group }: { group: Group }) {
           <div className="text-xs text-zinc-600">
             Anyone with this link can submit their score today.
           </div>
+          <SmsSignupInput groupId={group.id} />
         </div>
 
         {/* Date + progress */}

@@ -66,6 +66,25 @@ export function useGroupBoard(group: Group): GroupBoardState {
     // Push to server so other players see it
     await pushSubmission(group.id, sub);
 
+    // Fire-and-forget SMS to group members
+    const updatedSubs = [...todaySubs.filter(s => s.playerId !== playerId), sub];
+    const isLast = group.players.every(p => updatedSubs.some(s => s.playerId === p.id));
+    const player = group.players.find(p => p.id === playerId);
+    const submitterPhone = localStorage.getItem(`tb_phone_${group.id}`) ?? undefined;
+    fetch('/api/sms/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        groupId: group.id,
+        playerName: player?.name ?? 'Someone',
+        playerId,
+        date,
+        boardUrl: window.location.href,
+        isLast,
+        submitterPhone,
+      }),
+    }).catch(() => {});
+
     // Save to local history for the 7-day dots
     setHistorySubs(prev => {
       const updated = [...prev.filter(s => !(s.playerId === playerId && s.date === date)), sub];
