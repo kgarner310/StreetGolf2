@@ -4,7 +4,7 @@
 
 git_url("https://github.com/kgarner310/threadboard-certs")
 storage_mode("git")
-app_identifier("com.YOURNAME.threadname")  # must match Appfile
+app_identifier("com.kgarner310.threadboard")
 
 # MATCH_PASSWORD must be set in your environment — never commit it.
 # It encrypts/decrypts the certs stored in the git repo.
