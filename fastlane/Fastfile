@@ -1,0 +1,78 @@
+default_platform(:ios)
+
+RN_IOS_DIR = File.expand_path("../threadboard-mobile/ios", __dir__)
+
+platform :ios do
+
+  # ── setup ──────────────────────────────────────────────────────────────────
+  # Run once to initialize App ID, certificates, and APNS cert.
+  # Requires: Appfile filled in, MATCH_PASSWORD set, threadboard-certs repo created.
+  desc "Create App ID, sync certs, generate APNS push certificate"
+  lane :setup do
+    # Create the App ID in Apple Developer Portal (idempotent)
+    produce(
+      app_name: "Threadboard",
+      enable_services: {
+        push_notification: "on"
+      }
+    )
+
+    # Sync / create development and distribution certs + provisioning profiles
+    match(type: "development")
+    match(type: "appstore")
+
+    # Generate APNS push certificate (.p12 + .pem saved to fastlane/certs/)
+    pem(output_path: "fastlane/certs")
+
+    # Configure Xcode project entitlements and background modes
+    sh("../scripts/setup-ios.sh") if Dir.exist?(RN_IOS_DIR)
+
+    UI.success "Setup complete! Check fastlane/certs/ for your APNS certificate."
+  end
+
+  # ── certs ──────────────────────────────────────────────────────────────────
+  # Sync certs to a new machine without creating anything new.
+  # Run this instead of setup if certs already exist.
+  desc "Sync existing certificates and provisioning profiles (read-only)"
+  lane :certs do
+    match(type: "development", readonly: true)
+    match(type: "appstore", readonly: true)
+  end
+
+  # ── apns ───────────────────────────────────────────────────────────────────
+  # Renew the APNS push certificate (Apple certs expire after 1 year).
+  desc "Renew APNS push certificate"
+  lane :apns do
+    pem(force: true, output_path: "fastlane/certs")
+    UI.success "New APNS cert saved to fastlane/certs/"
+  end
+
+  # ── beta ───────────────────────────────────────────────────────────────────
+  # Build and upload to TestFlight.
+  # Requires: threadboard-mobile RN project initialized, pods installed.
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    unless Dir.exist?(RN_IOS_DIR)
+      UI.user_error! "React Native ios/ dir not found at #{RN_IOS_DIR}.\n" \
+                     "Run: npx react-native@latest init ThreadboardMobile --directory threadboard-mobile"
+    end
+
+    match(type: "appstore")
+
+    workspace = Dir["#{RN_IOS_DIR}/*.xcworkspace"].first
+    UI.user_error! "No .xcworkspace found in #{RN_IOS_DIR} — run 'pod install' first" unless workspace
+
+    build_app(
+      workspace: workspace,
+      scheme: "ThreadboardMobile",
+      configuration: "Release",
+      output_directory: "fastlane/builds",
+      output_name: "Threadboard.ipa"
+    )
+
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+end

@@ -1,0 +1,6 @@
+# Fill these in before running any fastlane lanes.
+# Find your Team ID at: https://developer.apple.com/account → Membership Details
+
+app_identifier("com.YOURNAME.threadboard")  # your bundle ID
+apple_id("YOUR_APPLE_ID@example.com")       # your Apple developer account email
+team_id("XXXXXXXXXX")                        # 10-character team ID

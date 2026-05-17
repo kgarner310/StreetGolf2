@@ -1,0 +1,11 @@
+# Private repo for encrypted certificate storage.
+# Create the repo first: https://github.com/new (must be private)
+# Then update the URL below.
+
+git_url("https://github.com/kgarner310/threadboard-certs")
+storage_mode("git")
+app_identifier("com.YOURNAME.threadname")  # must match Appfile
+
+# MATCH_PASSWORD must be set in your environment — never commit it.
+# It encrypts/decrypts the certs stored in the git repo.
+# Set it with: export MATCH_PASSWORD="your-strong-passphrase"
